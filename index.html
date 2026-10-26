@@ -4,653 +4,235 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Carpool Compute</title>
-<meta name="description" content="Should bundle tasks share one serverless environment by default? A rejection-sampling Monte Carlo prototype by Shriya Shekatkar.">
+<meta name="description" content="Should bundle tasks share one serverless environment by default? A rejection-sampling Monte Carlo decision prototype by Shriya Shekatkar.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Inter:wght@400;600;800&family=Inter+Tight:wght@500;700;900&family=JetBrains+Mono:wght@400;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Inter+Tight:wght@700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
-:root{
-  --cream:#FBF6E3; --ink:#111111; --orange:#B8400F; --orange-hi:#E8622A;
-  --pink:#F7C1C4; --pink-deep:#E98C93; --blue:#1414F0; --blue-soft:#4D5BFF;
-  --paper:#FFFFFF; --muted:#5a5a5a; --line:#111;
-}
+:root{--ink:#111;--bg:#fff;--muted:#555;--line:#e3e3e3;--blue:#1414F0;--soft:#f5f5f7}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{background:var(--cream);color:var(--ink);font-family:Inter,system-ui,sans-serif;line-height:1.55;overflow-x:hidden}
-a{color:inherit}
-.grain::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
-#ambient{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-main,header,footer{position:relative;z-index:1}
-.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
-section{padding:56px 0}
-h2{font-family:"Inter Tight",sans-serif;font-weight:900;font-size:clamp(28px,5vw,46px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em}
-.kicker{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-
-/* HERO: poster pin (cream, black silhouette, burnt-orange hand lettering) + moving scenery */
-.hero{position:relative;min-height:640px;overflow:hidden;background:#0b1030}
-#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
-.poster{position:relative;z-index:2;max-width:560px;margin:56px 0 0 max(16px,calc((100vw - 1120px)/2 + 16px));
-  background:var(--cream);border-radius:26px;padding:28px 28px 22px;box-shadow:0 18px 0 -6px rgba(0,0,0,.35);transform:rotate(-1.2deg)}
-.poster.grain{overflow:hidden}
-.poster h1{font-family:"Caveat Brush",cursive;font-weight:400;color:var(--orange);font-size:clamp(40px,7.4vw,76px);line-height:.92;margin:4px 0 14px;text-transform:uppercase;letter-spacing:.01em}
-.poster h1 span{display:block}
-.poster h1 span:nth-child(2){transform:rotate(2deg) translateX(14px)}
-.poster h1 span:nth-child(3){color:var(--ink);font-size:.62em;transform:rotate(-1deg)}
-.poster .meta{font-size:15px}
-.poster .meta b{font-family:"Inter Tight";font-weight:900}
-.launch{display:inline-block;margin-top:10px;font-size:14px;background:var(--ink);color:var(--cream);padding:6px 12px;border-radius:999px;text-decoration:none}
-.launch:hover{background:var(--orange)}
-.sound{position:absolute;z-index:3;right:16px;top:16px;border:0;cursor:pointer;font:700 14px "Inter Tight";background:var(--pink);color:var(--ink);padding:10px 16px;border-radius:999px;box-shadow:0 4px 0 var(--ink)}
-.sound[aria-pressed=true]{background:var(--blue);color:#fff}
-.sticker{position:absolute;z-index:3;right:6%;bottom:44px;background:var(--blue);color:#fff;font:900 15px "Inter Tight";padding:12px 16px;border-radius:16px;transform:rotate(6deg);box-shadow:0 0 0 4px #fff,0 8px 0 4px rgba(0,0,0,.3)}
-
-/* CARDS: graduATE pin (baby pink, black soft-blur grotesk, rounded squares) */
-.masonry{columns:3 280px;column-gap:18px}
-.card{break-inside:avoid;background:var(--pink);border-radius:24px;padding:22px;margin:0 0 18px;position:relative;transition:transform .25s}
-.card:hover{transform:translateY(-4px) rotate(-.4deg)}
-.card h3{font-family:"Inter Tight";font-weight:700;font-size:26px;letter-spacing:-.03em;margin:0 0 8px;text-shadow:0 0 1.4px rgba(0,0,0,.55)}
-.card h3 em{font-style:normal;text-transform:uppercase}
-.card p,.card li{font-size:15px;margin:6px 0}
-.card ul{padding-left:18px;margin:6px 0}
-.card .cap{font:600 12px "JetBrains Mono";letter-spacing:.06em;text-transform:uppercase;margin-top:10px;opacity:.85}
-.card.lime{background:#B9E86A}
-.card.mag{background:#F2A6D3}
-.gr{display:flex;justify-content:space-between;gap:10px;border-top:2px dashed rgba(0,0,0,.35);padding:7px 0}
-.gr b{font-family:"JetBrains Mono";font-size:13px;white-space:nowrap}
-.btn{font:700 16px "Inter Tight";border:0;border-radius:18px;background:var(--pink);color:var(--ink);padding:12px 18px;cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .1s}
-.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
-.btn.dark{background:var(--ink);color:var(--pink)}
-
-/* SIM ROOM: "power of repetition" pin (white paper, black marker, hand caps, Venn circles) */
-.room{background:var(--paper);border:3px solid var(--ink);border-radius:30px 26px 34px 24px;padding:24px;position:relative}
-.room.grain{overflow:hidden}
-.room h2,.room .hand{font-family:"Permanent Marker",cursive;font-weight:400;letter-spacing:0;text-transform:uppercase}
-.grid2{display:grid;grid-template-columns:330px 1fr;gap:24px}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}}
-.ctl{margin:0 0 14px}
-.ctl label{display:flex;justify-content:space-between;font:600 14px Inter;gap:8px}
-.ctl output{font-family:"JetBrains Mono";font-weight:600}
-.ctl small{display:block;color:var(--muted);font-size:12px}
-input[type=range]{width:100%;accent-color:var(--ink);height:28px}
-.canvasbox{border:3px solid var(--ink);border-radius:18px;overflow:hidden;background:#fff;position:relative}
-canvas.plot{width:100%;display:block}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;margin:8px 2px}
-.legend i{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:2px solid var(--ink)}
-
-/* KPI BADGES: "chilli flex" pin (electric blue tile, big black tight grotesk) */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
-@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--blue-soft);border-radius:6px;padding:14px 14px 12px;position:relative;overflow:hidden;min-height:132px}
-.kpi::before{content:"";position:absolute;inset:0;background:radial-gradient(rgba(255,255,255,.22) 1.2px,transparent 1.6px) 0 0/9px 9px;pointer-events:none}
-.kpi .v{font:900 clamp(34px,5vw,52px)/1 "Inter Tight";color:var(--ink);letter-spacing:-.04em;position:relative}
-.kpi .l{font:600 13px Inter;color:var(--ink);position:relative;margin-top:6px}
-.kpi .s{position:relative;display:inline-block;margin-top:8px;font:700 11px "JetBrains Mono";padding:3px 8px;border-radius:999px;background:#fff;color:var(--ink)}
-.kpi.bad .s{background:var(--ink);color:#fff}
-
-/* memo */
-.memo{background:var(--cream);border:3px solid var(--ink);border-radius:22px;padding:24px;box-shadow:10px 10px 0 var(--blue)}
-.memo h3{font-family:"Inter Tight";font-weight:900;font-size:22px;margin:16px 0 4px}
-.memo .vp{background:var(--pink);border-radius:16px;padding:14px 16px;font-weight:600;margin-top:18px}
-.stamp{display:inline-block;font:900 18px "Inter Tight";padding:6px 14px;border:3px solid currentColor;border-radius:10px;transform:rotate(-3deg);text-transform:uppercase}
-.stamp.go{color:#0b6b2e}.stamp.hold{color:var(--orange)}
-
-/* math */
-.venn{width:100%;max-width:520px;display:block;margin:10px auto}
-pre{background:#0d0d2b;color:#f4f1e6;border-radius:18px;padding:18px;overflow:auto;font:13px/1.55 "JetBrains Mono",monospace;max-width:100%}
-.cm{color:#9fa6ff}
-footer{background:var(--ink);color:var(--cream);padding:30px 0 40px}
-footer p{margin:6px 0}
-.credits{font-size:11px;color:#bdb6a6}
-.credits a{color:#d9d2c0}
-@media (prefers-reduced-motion: reduce){ .card,.btn{transition:none} }
-@media(max-width:600px){
-  .hero{min-height:780px}
-  .poster{margin:72px 16px 0;padding:22px 18px}
-  .sticker{right:16px;bottom:24px;font-size:13px}
-  section{padding:40px 0}
-  .room{padding:16px}
-}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:0 16px}
+header{padding:64px 0 32px;border-bottom:1px solid var(--line)}
+h1{font:900 clamp(32px,6vw,52px)/1.05 "Inter Tight",sans-serif;letter-spacing:-.03em;margin:8px 0 16px}
+h2{font:700 26px/1.2 "Inter Tight",sans-serif;letter-spacing:-.02em;margin:0 0 16px}
+h3{font:700 17px/1.3 "Inter Tight",sans-serif;margin:20px 0 4px}
+.tag{font:12px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--blue)}
+section{padding:40px 0;border-bottom:1px solid var(--line)}
+p{margin:6px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.box{background:var(--soft);border-radius:12px;padding:16px 18px}
+.box b{display:block;font:700 13px Inter;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td{padding:8px 0;border-bottom:1px solid var(--line)}
+td:last-child{text-align:right;font-family:"JetBrains Mono",monospace;white-space:nowrap}
+.ctl{margin-bottom:14px}
+.ctl label{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.ctl output{font-family:"JetBrains Mono",monospace}
+.ctl small{color:var(--muted);font-size:12px}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi .v{font:900 34px/1 "Inter Tight";letter-spacing:-.03em}
+.kpi .l{font-size:13px;color:var(--muted);margin-top:6px}
+.kpi .s{font-size:12px;font-weight:600;margin-top:6px}
+.ok{color:var(--blue)}.no{color:var(--ink);text-decoration:underline}
+canvas{width:100%;display:block;border:1px solid var(--line);border-radius:12px}
+.cap{font-size:13px;color:var(--muted);margin:6px 0 16px}
+.memo{border-left:4px solid var(--blue);padding-left:18px}
+.verdict{display:inline-block;font:700 14px "Inter Tight";background:var(--ink);color:#fff;padding:6px 12px;border-radius:999px}
+.vp{background:var(--soft);border-radius:12px;padding:14px 16px;font-weight:600;margin-top:18px}
+ol{padding-left:20px}ol li{margin:6px 0}
+pre{background:var(--soft);border-radius:12px;padding:16px;overflow:auto;font:13px/1.55 "JetBrains Mono",monospace}
+footer{padding:28px 0 48px;font-size:14px}
+.credits{font-size:11px;color:#666}
 </style>
 </head>
 <body>
-<canvas id="ambient" aria-hidden="true"></canvas>
-
-<header class="hero">
-  <canvas id="scene" aria-label="Animated scenery: horses galloping along a shoreline under a moving sun and moon, with waves, orchids, flowers, bubbles and stars"></canvas>
-  <button class="sound" id="sound" aria-pressed="false">♪ Play the gallop</button>
-  <div class="poster grain">
-    <div class="kicker">APM Lab · decision prototype</div>
-    <h1><span>Whatever ships next,</span><span>the env is ready.</span><span>Share the ride. Not the risk.</span></h1>
-    <div class="meta"><b>Shriya Shekatkar</b> · UCLA · Stats 102C Monte Carlo Methods</div>
-    <a class="launch" href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" target="_blank" rel="noopener">Mirrors: Shared Serverless for Asset Bundles (Beta, Oct 22 2026) ↗</a>
-  </div>
-  <div class="sticker">Ch4 · rejection sampling</div>
-</header>
+<header><div class="wrap">
+  <div class="tag">APM Lab · decision prototype</div>
+  <h1>Should every task in a bundle share one serverless environment?</h1>
+  <p>Mirrors <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" target="_blank" rel="noopener">Shared Serverless for Asset Bundles (Beta, Oct 22 2026)</a>.</p>
+  <p class="tag" style="margin-top:14px">Shriya Shekatkar · UCLA · Stats 102C Monte Carlo Methods</p>
+</div></header>
 
 <main>
 <section><div class="wrap">
-  <div class="kicker">01 · the decision</div>
-  <h2>Should every task in a bundle carpool on one serverless environment?</h2>
-  <div class="masonry">
-    <div class="card"><h3>the customer <em>problem</em></h3>
-      <p>A data engineer ships a bundle with eight notebook and Python tasks. Each one spins up and resolves its own environment, so a 6-minute job spends a big slice of its time installing the same packages over and over.</p>
-      <div class="cap">📌 pinned to: pain</div></div>
-    <div class="card lime"><h3>the proposed <em>change</em></h3>
-      <p>Make sharing the default: tasks in a bundle join a shared serverless environment defined once in the bundle-root <code>pyproject.toml</code>, with a cap of <b>k</b> tasks per shared environment and a pre-flight dependency check at deploy time.</p>
-      <div class="cap">📌 pinned to: the bet</div></div>
-    <div class="card mag"><h3>success <em>metric</em></h3>
-      <p><b>Environment setup minutes per job run</b>, down at least <b>30%</b> versus one environment per task.</p>
-      <div class="cap">📌 pinned to: north star</div></div>
-    <div class="card"><h3>guard<em>rails</em></h3>
-      <div class="gr"><span>Runs with a dependency conflict</span><b>≤ 2.0%</b></div>
-      <div class="gr"><span>P90 setup delay vs. isolated</span><b>no worse</b></div>
-      <div class="gr"><span>Tasks re-run per 100 runs</span><b>≤ 8</b></div>
-      <div class="gr"><span>Hard failures (need a human)</span><b>≤ 0.3%</b></div>
-      <div class="cap">📌 pinned to: do no harm</div></div>
-    <div class="card lime"><h3>stake<em>holders</em></h3>
-      <ul><li>Bundles + CLI engineering (config, validate)</li><li>Serverless compute (pool sizing, isolation)</li><li>Lakeflow Jobs PM (task semantics, retries)</li><li>Support + solutions architects (conflict tickets)</li><li>Customer FinOps admins (setup spend)</li></ul>
-      <div class="cap">📌 pinned to: who signs off</div></div>
-    <div class="card mag"><h3>why it's <em>hard</em></h3>
-      <p>Sharing saves setup time, but every extra task adds pairs of dependencies that can clash. Pairs grow like k(k−1)/2, so risk climbs much faster than savings do.</p>
-      <div class="cap">📌 pinned to: tension</div></div>
+  <h2>1. The decision</h2>
+  <div class="grid">
+    <div class="box"><b>Customer problem</b>A data engineer's 8-task bundle sets up its environment 8 times, re-installing the same packages before any work runs.</div>
+    <div class="box"><b>Proposed change</b>Share one serverless environment across tasks by default, capped at <i>k</i> tasks per environment, with a dependency check at deploy time.</div>
+    <div class="box"><b>Success metric</b>Environment setup minutes per job run, down at least 30% versus one environment per task.</div>
+    <div class="box"><b>Stakeholders</b>Bundles/CLI engineering, serverless compute, Jobs PM, support, customer FinOps admins.</div>
   </div>
+  <h3>Guardrails</h3>
+  <table>
+    <tr><td>Runs that hit a dependency conflict</td><td>≤ 2%</td></tr>
+    <tr><td>P90 setup delay vs. isolated environments</td><td>no worse</td></tr>
+    <tr><td>Tasks re-run per 100 runs</td><td>≤ 8</td></tr>
+    <tr><td>Hard failures needing a human</td><td>≤ 0.3%</td></tr>
+  </table>
+  <p class="cap" style="margin-top:12px">The tension: sharing saves setup time, but conflicts scale with pairs of tasks, k(k−1)/2, so risk grows faster than savings.</p>
 </div></section>
 
 <section><div class="wrap">
-  <div class="room grain">
-    <div class="kicker">02 · live simulation room</div>
-    <h2>The power of repetition: 2,000 job runs</h2>
-    <p style="max-width:760px">Setup times come from a lumpy curve (fast cached resolves plus slow cold installs). There's no off-the-shelf sampler for that exact shape, so I draw from it by <b>rejection sampling</b>: throw proposals under an exponential envelope and keep the ones that land under the curve. Then I replay every run with shared environments of size <b>k</b>.</p>
-    <div class="grid2">
-      <div>
-        <div class="ctl"><label for="T">Tasks per bundle <output id="oT"></output></label><input type="range" id="T" min="2" max="16" value="8"></div>
-        <div class="ctl"><label for="k">Max tasks per shared env (k) <output id="ok"></output></label><input type="range" id="k" min="1" max="16" value="4"><small>k = 1 means today's behavior: every task isolated.</small></div>
-        <div class="ctl"><label for="p">Pairwise conflict chance <output id="op"></output></label><input type="range" id="p" min="0" max="30" value="5"><small>Chance two tasks' dependencies clash (per pair).</small></div>
-        <div class="ctl"><label for="q">Pre-flight check catches <output id="oq"></output></label><input type="range" id="q" min="0" max="95" step="5" value="70"></div>
-        <div class="ctl"><label for="w">Cold installs share <output id="ow"></output></label><input type="range" id="w" min="5" max="70" step="5" value="30"></div>
-        <div class="ctl"><label for="mu">Envelope mean (sec) <output id="omu"></output></label><input type="range" id="mu" min="35" max="160" step="5" value="70"><small>Tune the envelope: too tight or too loose and acceptance drops.</small></div>
-        <div class="ctl"><label for="seed">Seed <output id="oseed"></output></label><input type="range" id="seed" min="1" max="999" value="102"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="reroll">Re-roll seed</button><button class="btn dark" id="replay">Replay animation</button></div>
-      </div>
-      <div>
-        <div class="canvasbox"><canvas class="plot" id="rej" height="320" aria-label="Rejection sampling: proposals under envelope, accepted below target curve"></canvas></div>
-        <div class="legend"><span><i style="background:#111"></i>accepted draw</span><span><i style="background:#fff;border-color:#B8400F"></i>rejected draw</span><span>— target curve f</span><span>- - envelope M·g</span></div>
-        <div class="canvasbox" style="margin-top:12px"><canvas class="plot" id="sweep" height="230" aria-label="Savings and conflict rate across share sizes k"></canvas></div>
-        <div class="legend"><span><i style="background:#4D5BFF"></i>setup minutes saved</span><span><i style="background:#E8622A"></i>runs with a conflict</span><span>⭐ largest k that clears every guardrail</span></div>
-      </div>
+  <h2>2. Simulation</h2>
+  <p>2,000 simulated job runs. Setup times are drawn from a fitted curve using rejection sampling, then each run is replayed at every cap k.</p>
+  <div class="grid" style="margin-top:16px">
+    <div>
+      <div class="ctl"><label for="T">Tasks per bundle <output id="oT"></output></label><input type="range" id="T" min="2" max="16" value="8"></div>
+      <div class="ctl"><label for="k">Cap k (tasks per shared env) <output id="ok"></output></label><input type="range" id="k" min="1" max="16" value="4"><small>k = 1 is today: every task isolated.</small></div>
     </div>
-    <div class="kpis" id="kpis"></div>
+    <div>
+      <div class="ctl"><label for="p">Conflict chance per task pair <output id="op"></output></label><input type="range" id="p" min="0" max="30" value="5"></div>
+      <div class="ctl"><label for="q">Deploy-time check catches <output id="oq"></output></label><input type="range" id="q" min="0" max="95" step="5" value="70"></div>
+    </div>
   </div>
+  <div class="kpis" id="kpis"></div>
+  <canvas id="sweep" height="260" aria-label="Setup minutes saved and conflict rate for each cap k"></canvas>
+  <p class="cap">X axis: cap k. Blue: setup minutes saved. Black: share of runs with a conflict (2% limit dashed). Dot marks the largest k that clears every guardrail.</p>
+  <canvas id="rej" height="220" aria-label="Rejection sampling: accepted and rejected proposals under the envelope"></canvas>
+  <p class="cap">How the setup times are drawn: proposals under the dashed envelope; blue dots land under the target curve and are kept, grey dots are rejected.</p>
 </div></section>
 
 <section><div class="wrap">
-  <div class="kicker">03 · director memo (rewrites itself)</div>
+  <h2>3. Director memo</h2>
   <div class="memo" id="memo" aria-live="polite"></div>
 </div></section>
 
 <section><div class="wrap">
-  <div class="kicker">04 · the math, from my Monte Carlo course</div>
-  <h2>Rejection sampling, in plain words</h2>
-  <div class="masonry">
-    <div class="card"><h3>1 · the <em>shape</em></h3><p>Telemetry gives me a curve f(s) for setup seconds, but not a formula I can invert. I can evaluate its height anywhere. That's all rejection sampling needs.</p></div>
-    <div class="card lime"><h3>2 · the <em>envelope</em></h3><p>Pick an easy distribution g I <i>can</i> sample (an exponential, via −μ·ln U) and a constant M so that M·g(s) sits above f(s) everywhere.</p></div>
-    <div class="card mag"><h3>3 · the <em>coin flip</em></h3><p>Draw s from g and U from Uniform(0,1). Keep s if U ≤ f(s) / (M·g(s)). The kept draws follow f exactly, because each spot survives in proportion to f's height.</p></div>
-    <div class="card"><h3>4 · the <em>price</em></h3><p>On average only 1 in M proposals is kept, so the acceptance rate is 1/M. A sloppy envelope wastes compute, just like an over-provisioned cluster.</p></div>
-    <div class="card lime"><h3>product <em>example</em></h3><p>The same trick turns any fitted latency or cost curve into a simulator: sample from the curve, push draws through the product's rules, and read off P90s, savings and risk before a single customer sees the change.</p></div>
-  </div>
-  <svg class="venn" viewBox="0 0 520 230" role="img" aria-label="Hand-drawn Venn: proposals and under-the-curve overlap in accepted draws">
-    <g fill="none" stroke="#111" stroke-width="3.2" stroke-linecap="round">
-      <path d="M190 30c-90 2-150 50-150 88 0 46 66 86 150 84 82-2 136-40 136-86 0-44-54-88-136-86z"/>
-      <path d="M332 28c-82 0-138 44-138 90 0 44 60 86 140 84 86-2 146-42 146-86 0-46-60-90-148-88z"/>
-      <path d="M262 186 L262 120 M252 132 L262 118 L272 132"/>
-    </g>
-    <g font-family="Permanent Marker" font-size="20" fill="#111"><text x="78" y="112">PROPOSALS</text><text x="350" y="112">UNDER f</text><text x="196" y="218">ACCEPTED = REPEAT ×1/M</text></g>
-  </svg>
+  <h2>4. The method: rejection sampling</h2>
+  <ol>
+    <li>Telemetry gives a curve f(s) for setup seconds. I can compute its height, but there's no simple formula to sample it directly.</li>
+    <li>Pick an easy distribution g (exponential, drawn as −μ·ln U) and a constant M so that M·g(s) is always above f(s).</li>
+    <li>Draw s from g and U from Uniform(0,1). Keep s if U ≤ f(s) / (M·g(s)). Kept draws follow f exactly.</li>
+    <li>Only 1 in M proposals is kept on average, so a tight envelope saves compute.</li>
+  </ol>
+  <p><b>Why a PM cares:</b> any fitted latency or cost curve becomes a simulator, so you can estimate P90s, savings and risk before a customer sees the change.</p>
 </div></section>
 
 <section><div class="wrap">
-  <div class="kicker">05 · how I'd run it on real data</div>
-  <h2>From prototype to warehouse</h2>
-  <pre><span class="cm">-- 1. Fit the setup-time curve from job telemetry (illustrative table names)</span>
-SELECT task_type,
-       percentile_approx(env_setup_ms / 1000.0, array(0.5, 0.9, 0.99)) AS setup_s_p50_p90_p99,
-       avg(CASE WHEN cache_hit THEN 0 ELSE 1 END)                     AS cold_install_share,
-       count(*)                                                       AS n_tasks
+  <h2>5. On real data</h2>
+<pre>-- Setup-time distribution and cold-install share (illustrative tables)
+SELECT percentile_approx(env_setup_ms/1000.0, array(0.5,0.9)) AS setup_s_p50_p90,
+       avg(CASE WHEN cache_hit THEN 0 ELSE 1 END)               AS cold_share
 FROM   main.apm_lab.job_task_env_events
-WHERE  event_date &gt;= current_date() - INTERVAL 28 DAYS
-GROUP  BY task_type;
+WHERE  event_date >= current_date() - INTERVAL 28 DAYS;
 
-<span class="cm">-- 2. Pairwise conflict rate from bundles that already share an environment</span>
-SELECT avg(CAST(had_resolver_conflict AS INT)) / avg(n_task_pairs) AS p_conflict_per_pair
+-- Measured conflict rate per task pair from shared-environment beta runs
+SELECT avg(CAST(had_conflict AS INT)) / avg(n_task_pairs) AS p_conflict_per_pair
 FROM   main.apm_lab.shared_env_runs;</pre>
-  <pre><span class="cm"># 3. Rejection-sample the fitted curve and replay share sizes</span>
+<pre># Rejection sampler in Python
 import numpy as np
 rng = np.random.default_rng(102)
-
-def f(s, w=0.30):                      # fitted mixture shape (seconds)
-    fast = s * np.exp(-s/18) / 18**2
-    cold = s**3 * np.exp(-s/30) / (6 * 30**4)
-    return (1-w)*fast + w*cold
-
+f = lambda s: 0.7*s*np.exp(-s/18)/18**2 + 0.3*s**3*np.exp(-s/30)/(6*30**4)
 mu = 70.0
 grid = np.linspace(0.01, 600, 6000)
 M = 1.01 * np.max(f(grid) / (np.exp(-grid/mu)/mu))
-
-def draw(n):
-    out = []
-    while len(out) &lt; n:
-        s = rng.exponential(mu, n)
-        u = rng.uniform(size=n)
-        out.extend(s[u &lt;= f(s) / (M*np.exp(-s/mu)/mu)])
-    return np.array(out[:n])
-
-print("acceptance ≈", 1/M)</pre>
+s = rng.exponential(mu, 100_000)
+keep = s[rng.uniform(size=s.size) &lt;= f(s) / (M*np.exp(-s/mu)/mu)]
+print(len(keep)/len(s), "≈", 1/M)</pre>
 </div></section>
 </main>
 
 <footer><div class="wrap">
   <p>Unofficial concept prototype by Shriya Shekatkar. All data is simulated. Not affiliated with any company.</p>
-  <p><a href="https://shriyashekatkar25-byte.github.io/apm-lab/">← Back to the APM Lab gallery</a></p>
-  <p class="credits">Design inspired by:
-    <a href="https://www.pinterest.com/pin/590323463712472547/">"Whatever comes next" poster (bonza)</a> ·
-    <a href="https://www.pinterest.com/pin/794955771770627264/">graduATE (Hyunjin Kim)</a> ·
-    <a href="https://www.pinterest.com/pin/869687378069934509/">chilli flex (saanvi)</a> ·
-    <a href="https://www.pinterest.com/pin/520799144430614522/">The Power of Repetition (Ole Hedeager)</a></p>
+  <p><a href="https://shriyashekatkar25-byte.github.io/apm-lab/">← APM Lab gallery</a></p>
+  <p class="credits">Design inspired by: <a href="https://www.pinterest.com/pin/869687378069934509/">chilli flex (saanvi)</a> · <a href="https://www.pinterest.com/pin/794955771770627264/">graduATE (Hyunjin Kim)</a></p>
 </div></footer>
 
 <script>
 (()=>{
 "use strict";
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const $ = id => document.getElementById(id);
-
-/* ---------- seeded RNG ---------- */
+const $=id=>document.getElementById(id);
+const BLUE='#1414F0',INK='#111',GREY='#bbb';
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const W_COLD=.30,MU=70,N=2000,SEED=102,SMAX=600;
+const gpdf=(s,k,th,gk)=>Math.pow(s,k-1)*Math.exp(-s/th)/(gk*Math.pow(th,k));
+const f=s=>(1-W_COLD)*gpdf(s,2,18,1)+W_COLD*gpdf(s,4,30,6);
+const g=s=>Math.exp(-s/MU)/MU;
+let M=0;for(let i=1;i<=3000;i++){const s=i*SMAX/3000;M=Math.max(M,f(s)/g(s))}M*=1.01;
 
-/* ================= HERO SCENERY ================= */
-const scene=$('scene'), sx=scene.getContext('2d');
-let SW=0,SH=0,DPR=1;
-function sizeScene(){DPR=Math.min(2,devicePixelRatio||1);SW=scene.clientWidth;SH=scene.clientHeight;scene.width=SW*DPR;scene.height=SH*DPR;sx.setTransform(DPR,0,0,DPR,0,0)}
-const srnd=mulberry32(7);
-const stars=Array.from({length:140},()=>({x:srnd(),y:srnd()*.55,r:.6+srnd()*1.6,p:srnd()*6.28}));
-const bubbles=Array.from({length:34},()=>({x:srnd(),y:srnd(),r:3+srnd()*11,v:.02+srnd()*.05,p:srnd()*6.28}));
-const flowers=Array.from({length:26},(_,i)=>({x:(i+srnd()*.8)/26,h:.55+srnd()*.6,kind:i%3,p:srnd()*6.28,c:['#F2A6D3','#F7C1C4','#E8622A','#fff4b0','#c9a7ff'][i%5]}));
-const horses=[{o:0,s:.95,y:6,c:'bay',sp:1},{o:.36,s:.8,y:-8,c:'grey',sp:.93},{o:.7,s:.68,y:-18,c:'black',sp:.86}];
-const dust=[];
-function lerp(a,b,t){return a+(b-a)*t}
-function mix(c1,c2,t){const a=c1.match(/\w\w/g).map(h=>parseInt(h,16)),b=c2.match(/\w\w/g).map(h=>parseInt(h,16));return'rgb('+a.map((v,i)=>Math.round(lerp(v,b[i],t))).join(',')+')'}
-
-const HORSE_COATS={
-  bay:{coat:['#8a4a22','#4a230f'],dark:'#2a1308',mane:'#160a05',sock:'#f3ead8'},
-  grey:{coat:['#f7f3ea','#b9b3a8'],dark:'#8e877c',mane:'#efe7d4',sock:'#ffffff'},
-  black:{coat:['#3a3340','#0e0c12'],dark:'#050407',mane:'#050407',sock:'#E8622A'}
-};
-function ik(hx,hy,px,py,L1,L2,bendSign){
-  let dx=px-hx,dy=py-hy,d=Math.hypot(dx,dy);const max=L1+L2-0.01;
-  if(d>max){px=hx+dx/d*max;py=hy+dy/d*max;dx=px-hx;dy=py-hy;d=max}
-  const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
-  const mx=hx+dx*a/d,my=hy+dy*a/d;
-  return [mx+bendSign*(-dy)*h/d, my+bendSign*(dx)*h/d, px, py];
+function sample(T){
+  const rnd=mulberry32(SEED*7919+T),need=N*T,draws=new Float64Array(need),show=[];let n=0,props=0;
+  while(n<need){const s=-MU*Math.log(1-rnd());if(s>SMAX)continue;const u=rnd();props++;
+    const ok=u<=f(s)/(M*g(s));if(show.length<700)show.push([s,u*M*g(s),ok]);if(ok)draws[n++]=s}
+  const cu=new Float64Array(need);for(let i=0;i<need;i++)cu[i]=rnd();
+  return {draws,cu,acc:need/props,show};
 }
-// legs: [attachX, attachY, phaseOffset, front?, nearSide?]
-const LEGS=[[-34,-58,0.00,false,false],[-30,-58,0.10,false,true],[30,-56,0.42,true,false],[35,-56,0.52,true,true]];
-function hoofPath(phi,front){
-  const duty=0.36,reach=front?20:17;
-  if(phi<duty){const s=phi/duty;return [reach-2*reach*s,0,true]}
-  const s=(phi-duty)/(1-duty);
-  const x=-reach+2*reach*(0.5-0.5*Math.cos(Math.PI*s));
-  const lift=(front?30:22)*Math.sin(Math.PI*Math.min(1,s*1.15));
-  return [x+(front?6:-4)*Math.sin(Math.PI*s),-lift,false];
-}
-function drawLeg(ctx,ax,ay,phi,front,col,sock,groundY,bob){
-  const [hxo,hyo,st]=hoofPath(phi,front);
-  const L1=front?27:30,L2=front?25:25;
-  const px=ax+hxo,py=groundY-7+hyo-bob;      // fetlock target (7 above hoof)
-  const [kx,ky,fx,fy]=ik(ax,ay,px,py,L1,L2,front?-1:1);
-  ctx.strokeStyle=col;ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.lineWidth=front?12:15;ctx.beginPath();ctx.moveTo(ax,ay-4);ctx.lineTo(kx,ky);ctx.stroke();
-  ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(kx,ky);ctx.lineTo(fx,fy);ctx.stroke();
-  // pastern + hoof
-  const pa=st?0.35:(front?-0.9:0.6);
-  const hx=fx+Math.sin(pa)*7,hy=fy+Math.cos(pa)*7;
-  ctx.strokeStyle=sock;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(hx,hy);ctx.stroke();
-  ctx.fillStyle='#1b1410';ctx.beginPath();ctx.ellipse(hx+1,hy+1,5,3.4,pa,0,6.283);ctx.fill();
-  return st?[hx,hy]:null;
-}
-function drawHorse(ctx,x,y,s,phase,coatName,t){
-  const C=HORSE_COATS[coatName];
-  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
-  const cyc=phase%1;
-  const bob=Math.sin(cyc*Math.PI*2+0.8)*3.5, pitch=Math.sin(cyc*Math.PI*2+2.2)*0.045;
-  const hooves=[];
-  // far legs (behind body, darker)
-  LEGS.filter(l=>!l[4]).forEach(([ax,ay,o,front])=>{const h=drawLeg(ctx,ax,ay+bob,(cyc+o)%1,front,C.dark,C.dark,0,0);if(h)hooves.push(h)});
-  // tail (behind body)
-  ctx.save();ctx.translate(0,bob);ctx.rotate(pitch);
-  const tw=Math.sin(t*9)*5;
-  ctx.fillStyle=C.mane;ctx.beginPath();ctx.moveTo(-50,-80);
-  ctx.bezierCurveTo(-70,-92+tw,-90,-86+tw,-108,-70+tw*1.4);
-  ctx.bezierCurveTo(-100,-66+tw,-92,-62+tw*.6,-80,-62+tw*.5);
-  ctx.bezierCurveTo(-68,-62,-58,-68,-52,-70);ctx.closePath();ctx.fill();
-  ctx.strokeStyle=C.mane;ctx.lineWidth=2.5;
-  for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(-70,-78+k*5+tw*.5);ctx.quadraticCurveTo(-92,-80+k*6+tw,-112+k*4,-64+k*4+tw*1.5);ctx.stroke()}
-  // body
-  const g=ctx.createLinearGradient(0,-90,0,-48);g.addColorStop(0,C.coat[0]);g.addColorStop(1,C.coat[1]);
-  ctx.fillStyle=g;ctx.beginPath();
-  ctx.moveTo(46,-66);                                   // chest
-  ctx.bezierCurveTo(44,-78,36,-84,26,-84);              // up to withers
-  ctx.bezierCurveTo(12,-82,0,-77,-14,-79);              // back dip
-  ctx.bezierCurveTo(-30,-84,-46,-84,-54,-74);           // croup
-  ctx.bezierCurveTo(-60,-66,-56,-56,-46,-52);           // rump / buttock
-  ctx.bezierCurveTo(-36,-48,-28,-54,-18,-52);           // flank
-  ctx.bezierCurveTo(-4,-48,14,-48,26,-50);              // belly
-  ctx.bezierCurveTo(36,-52,44,-56,46,-66);ctx.closePath();ctx.fill();
-  // neck + head
-  ctx.beginPath();
-  ctx.moveTo(26,-84);
-  ctx.bezierCurveTo(34,-98,44,-112,56,-118);            // crest
-  ctx.bezierCurveTo(60,-121,64,-121,66,-118);           // poll
-  ctx.bezierCurveTo(74,-110,82,-100,88,-92);            // face
-  ctx.bezierCurveTo(91,-88,88,-84,83,-84);              // muzzle
-  ctx.bezierCurveTo(76,-85,70,-90,64,-96);              // jaw
-  ctx.bezierCurveTo(58,-92,52,-80,46,-66);              // throat to chest
-  ctx.closePath();ctx.fill();
-  // ears
-  ctx.beginPath();ctx.moveTo(58,-118);ctx.lineTo(57,-128);ctx.lineTo(63,-120);ctx.fill();
-  // mane flowing back
-  ctx.strokeStyle=C.mane;ctx.lineCap='round';
-  for(let i=0;i<7;i++){const u=i/6,bx=60-u*36,by=-120+u*35,fl=Math.sin(t*8+i*.9)*4;
-    ctx.lineWidth=5-u*1.5;ctx.beginPath();ctx.moveTo(bx,by);
-    ctx.quadraticCurveTo(bx-12,by-3+fl*.6,bx-24-u*3,by+7+fl);ctx.stroke()}
-  ctx.fillStyle=C.mane;ctx.beginPath();ctx.moveTo(60,-121);ctx.bezierCurveTo(46,-114,34,-98,24,-84);ctx.lineTo(30,-84);ctx.bezierCurveTo(40,-98,50,-110,62,-118);ctx.closePath();ctx.fill();
-  // forelock
-  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(62,-119);ctx.quadraticCurveTo(68,-116,70,-112+Math.sin(t*8)*1.5);ctx.stroke();
-  // sheen
-  ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-40,-78);ctx.bezierCurveTo(-20,-80,4,-74,20,-80);ctx.stroke();
-  // eye + nostril
-  ctx.fillStyle='#111';ctx.beginPath();ctx.arc(70,-108,2.3,0,6.283);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(70.8,-108.8,.8,0,6.283);ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.arc(85,-89,1.6,0,6.283);ctx.fill();
-  ctx.restore();
-  // near legs (in front of body)
-  LEGS.filter(l=>l[4]).forEach(([ax,ay,o,front])=>{const h=drawLeg(ctx,ax,ay+bob,(cyc+o)%1,front,C.coat[1],C.sock,0,0);if(h)hooves.push(h)});
-  ctx.restore();
-  return hooves.map(([hx,hy])=>[x+hx*s,y+hy*s]);
-}
-
-function drawOrchid(ctx,x,y,sz,c,sway){
-  ctx.save();ctx.translate(x,y);ctx.rotate(sway);
-  ctx.fillStyle=c;
-  for(let i=0;i<5;i++){ctx.save();ctx.rotate(i*1.2566);ctx.beginPath();ctx.ellipse(0,-sz*.55,sz*.32,sz*.55,0,0,6.283);ctx.fill();ctx.restore()}
-  ctx.fillStyle='#B8400F';ctx.beginPath();ctx.ellipse(0,sz*.22,sz*.22,sz*.3,0,0,6.283);ctx.fill();
-  ctx.fillStyle='#fff4b0';ctx.beginPath();ctx.arc(0,0,sz*.13,0,6.283);ctx.fill();
-  ctx.restore();
-}
-function drawDaisy(ctx,x,y,sz,c){
-  ctx.fillStyle=c;for(let i=0;i<8;i++){const a=i*.785;ctx.beginPath();ctx.ellipse(x+Math.cos(a)*sz*.5,y+Math.sin(a)*sz*.5,sz*.38,sz*.18,a,0,6.283);ctx.fill()}
-  ctx.fillStyle='#E8622A';ctx.beginPath();ctx.arc(x,y,sz*.25,0,6.283);ctx.fill();
-}
-let t0=performance.now();
-function sceneFrame(now){
-  const t=(now-t0)/1000;
-  const W=SW,H=SH;if(!W){return}
-  const cyc=(t/40)%1;                 // full day-night cycle every 40 s
-  const sunH=Math.sin(cyc*6.283);            // sun height: +1 noon, -1 midnight
-  const day=Math.min(1,Math.max(0,sunH*1.4+.35)); // 0 night, 1 day (dusk/dawn blend)
-  const g=sx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,mix('0b1030','4D5BFF',day));
-  g.addColorStop(.55,mix('3b1e5e','F7C1C4',day));
-  g.addColorStop(1,mix('1a1440','FBF6E3',day));
-  sx.fillStyle=g;sx.fillRect(0,0,W,H);
-  // stars
-  const sa=1-day;
-  if(sa>.02){sx.fillStyle='#fff';stars.forEach(s=>{sx.globalAlpha=sa*(.45+.55*Math.sin(t*2+s.p)**2);sx.beginPath();sx.arc(s.x*W,s.y*H,s.r,0,6.283);sx.fill()});sx.globalAlpha=1}
-  // sun & moon on opposite arcs
-  const ang=cyc*6.283;
-  const cx=W*.5,cy=H*.78,rx=W*.46,ry=H*.62;
-  const sX=cx-Math.cos(ang)*rx, sY=cy-Math.sin(ang)*ry;   // sun rises left, sets right
-  const mX=cx+Math.cos(ang)*rx, mY=cy+Math.sin(ang)*ry;   // moon opposite
-  if(sY<cy+40){
-    sx.save();sx.translate(sX,sY);sx.rotate(t*.3);
-    sx.fillStyle='#E8622A';for(let i=0;i<12;i++){sx.rotate(.5236);sx.beginPath();sx.moveTo(-6,-40);sx.lineTo(0,-62);sx.lineTo(6,-40);sx.fill()}
-    sx.restore();
-    const sg=sx.createRadialGradient(sX-10,sY-12,4,sX,sY,38);sg.addColorStop(0,'#fff4b0');sg.addColorStop(.6,'#ffb347');sg.addColorStop(1,'#E8622A');
-    sx.fillStyle=sg;sx.beginPath();sx.arc(sX,sY,36,0,6.283);sx.fill();
-  }
-  if(mY<cy+40){
-    // chrome crescent: outer arc minus offset inner arc, as one path (no sky-colored cover disk)
-    const mg=sx.createLinearGradient(mX-30,mY-30,mX+30,mY+30);mg.addColorStop(0,'#ffffff');mg.addColorStop(.5,'#d4d6ea');mg.addColorStop(1,'#9095c0');
-    sx.save();sx.shadowColor='rgba(220,225,255,.8)';sx.shadowBlur=24;sx.fillStyle=mg;
-    sx.beginPath();sx.arc(mX,mY,30,0.5,5.8,false);sx.arc(mX+14,mY-6,25,5.35,0.95,true);sx.closePath();sx.fill();sx.restore();
-  }
-  const groundY=Math.max(H*.74,H-190);
-  // far hills
-  sx.fillStyle=mix('2a1650','E98C93',day);
-  sx.beginPath();sx.moveTo(0,groundY-60);for(let x=0;x<=W;x+=20)sx.lineTo(x,groundY-70+Math.sin(x*.006+1)*22+Math.sin(x*.017)*8);sx.lineTo(W,H);sx.lineTo(0,H);sx.fill();
-  // meadow strip
-  sx.fillStyle=mix('1d1438','B9E86A',day*.9);sx.fillRect(0,groundY-8,W,H);
-  // flowers & orchids swaying
-  flowers.forEach((f,i)=>{
-    const fx=((f.x*W - t*18)%(W+80)+W+80)%(W+80)-40;
-    const fy=groundY-4;const sway=Math.sin(t*1.6+f.p)*.18;
-    sx.strokeStyle='#2f6b2a';sx.lineWidth=2.5;sx.beginPath();sx.moveTo(fx,fy+10);sx.quadraticCurveTo(fx+8*sway*10,fy-18*f.h,fx+sway*30,fy-34*f.h);sx.stroke();
-    if(f.kind===0)drawOrchid(sx,fx+sway*30,fy-34*f.h,16*f.h,f.c,sway);else drawDaisy(sx,fx+sway*30,fy-34*f.h,11*f.h,f.c);
-  });
-  // horses galloping on the meadow (hooves land on the grass line, above the water)
-  const hs=Math.max(.5,Math.min(1.05,W/1150));
-  const turf=groundY+16;
-  horses.forEach((h,i)=>{
-    const span=W+300;const hx=((t*110*h.sp+h.o*span)%span)-150;
-    const hv=drawHorse(sx,hx,turf+h.y*hs,h.s*hs,t*2.3*h.sp+i*.37,h.c,t+i);
-    if(!reduce)hv.forEach(([px,py])=>{if(Math.random()<.35)dust.push({x:px,y:py,r:2,a:.5})});
-  });
-  for(let i=dust.length-1;i>=0;i--){const d=dust[i];d.x-=1.2;d.y-=.25;d.r+=.35;d.a-=.012;
-    if(d.a<=0){dust.splice(i,1);continue}
-    sx.fillStyle=`rgba(255,244,214,${d.a})`;sx.beginPath();sx.arc(d.x,d.y,d.r,0,6.283);sx.fill()}
-  // waves (layered sine, foam)
-  const waveCols=[['1b2a7a','4D5BFF'],['14156b','2B2BFF'],['0d0d4a','1414F0']];
-  waveCols.forEach((wc,j)=>{
-    const base=groundY+34+j*22;sx.fillStyle=mix(wc[0],wc[1],day);
-    sx.beginPath();sx.moveTo(0,H);
-    for(let x=0;x<=W;x+=8)sx.lineTo(x,base+Math.sin(x*.018+t*(1.4+j*.4)+j)*7+Math.sin(x*.05-t*2)*2.5);
-    sx.lineTo(W,H);sx.fill();
-    sx.strokeStyle='rgba(255,255,255,.55)';sx.lineWidth=2;sx.beginPath();
-    for(let x=0;x<=W;x+=8){const y=base+Math.sin(x*.018+t*(1.4+j*.4)+j)*7+Math.sin(x*.05-t*2)*2.5;x?sx.lineTo(x,y):sx.moveTo(x,y)}sx.stroke();
-  });
-  // bubbles rising
-  bubbles.forEach(b=>{
-    const by=((b.y - t*b.v)%1+1)%1;const bx=b.x*W+Math.sin(t+b.p)*14;const yy=by*H;
-    sx.strokeStyle='rgba(255,255,255,.75)';sx.lineWidth=1.5;sx.beginPath();sx.arc(bx,yy,b.r,0,6.283);sx.stroke();
-    sx.fillStyle='rgba(255,255,255,.18)';sx.fill();
-    sx.fillStyle='rgba(255,255,255,.8)';sx.beginPath();sx.arc(bx-b.r*.35,yy-b.r*.35,b.r*.22,0,6.283);sx.fill();
-  });
-  if(!reduce)requestAnimationFrame(sceneFrame);
-}
-
-/* ambient petals + bubbles across page */
-const amb=$('ambient'),ax=amb.getContext('2d');
-const petals=Array.from({length:22},(_,i)=>({x:Math.random(),y:Math.random(),r:4+Math.random()*7,v:.012+Math.random()*.02,p:Math.random()*6,c:['#F2A6D3','#E8622A','#4D5BFF','#B9E86A'][i%4],b:i%3===0}));
-function sizeAmb(){amb.width=innerWidth*DPR;amb.height=innerHeight*DPR;ax.setTransform(DPR,0,0,DPR,0,0)}
-function ambFrame(now){
-  const t=now/1000,W=innerWidth,H=innerHeight;ax.clearRect(0,0,W,H);
-  petals.forEach(p=>{
-    const y=((p.y+t*p.v)%1)*H, x=p.x*W+Math.sin(t*.8+p.p)*30;
-    ax.globalAlpha=.32;
-    if(p.b){ax.strokeStyle=p.c;ax.lineWidth=1.5;ax.beginPath();ax.arc(x,H-y,p.r*1.4,0,6.283);ax.stroke()}
-    else{ax.save();ax.translate(x,y);ax.rotate(t+p.p);ax.fillStyle=p.c;ax.beginPath();ax.ellipse(0,0,p.r,p.r*.45,0,0,6.283);ax.fill();ax.restore()}
-  });ax.globalAlpha=1;
-  if(!reduce)requestAnimationFrame(ambFrame);
-}
-
-/* ---------- music: generative pentatonic + clip-clop gallop (WebAudio, no files) ---------- */
-let actx=null,musicOn=false,timer=null,step=0;
-const scale=[0,2,4,7,9,12,14,16,19];
-function note(freq,when,dur,type,vol){const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(vol,when+.02);g.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(g).connect(master);o.start(when);o.stop(when+dur+.05)}
-let master;
-function clop(when,pitch){const len=.05,buf=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,6);const s=actx.createBufferSource();s.buffer=buf;const bp=actx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=pitch;bp.Q.value=4;const g=actx.createGain();g.gain.value=.55;s.connect(bp).connect(g).connect(master);s.start(when)}
-const mrnd=mulberry32(102);
-function tick(){
-  const now=actx.currentTime+.05,beat=.18;
-  for(let i=0;i<4;i++){
-    const w=now+i*beat;const s=step++;
-    // gallop: three hoof beats then a rest
-    if(s%4!==3)clop(w,[900,1200,700][s%4]);
-    if(s%2===0)note(220*Math.pow(2,scale[Math.floor(mrnd()*scale.length)]/12),w,.5,'triangle',.07);
-    if(s%16===0){[0,4,7].forEach(n=>note(110*Math.pow(2,n/12),w,2.8,'sine',.05))}
-    if(s%8===4)note(440*Math.pow(2,scale[Math.floor(mrnd()*scale.length)]/12),w,.9,'sine',.035);
-  }
-}
-$('sound').addEventListener('click',()=>{
-  if(!actx){actx=new (window.AudioContext||window.webkitAudioContext)();master=actx.createGain();master.gain.value=.6;master.connect(actx.destination)}
-  musicOn=!musicOn;$('sound').setAttribute('aria-pressed',musicOn);$('sound').textContent=musicOn?'❚❚ Pause the gallop':'♪ Play the gallop';
-  if(musicOn){actx.resume();tick();timer=setInterval(tick,720)}else{clearInterval(timer)}
-});
-
-/* ================= MODEL ================= */
-function gammaPdf(s,k,th,gk){return Math.pow(s,k-1)*Math.exp(-s/th)/(gk*Math.pow(th,k))}
-function f(s,w){return (1-w)*gammaPdf(s,2,18,1)+w*gammaPdf(s,4,30,6)}
-function gpdf(s,mu){return Math.exp(-s/mu)/mu}
-const SMAX=600;
-function envelopeM(w,mu){let m=0;for(let i=1;i<=3000;i++){const s=i*SMAX/3000;m=Math.max(m,f(s,w)/gpdf(s,mu))}return m*1.01}
-
-let state={};
-function readUI(){
-  const T=+$('T').value; $('k').max=T; if(+$('k').value>T)$('k').value=T;
-  return {T,k:+$('k').value,p:+$('p').value/1000,q:+$('q').value/100,w:+$('w').value/100,mu:+$('mu').value,seed:+$('seed').value,N:2000};
-}
-function labels(P){$('oT').textContent=P.T;$('ok').textContent=P.k;$('op').textContent=(P.p*100).toFixed(1)+'%';$('oq').textContent=Math.round(P.q*100)+'%';$('ow').textContent=Math.round(P.w*100)+'%';$('omu').textContent=P.mu;$('oseed').textContent=P.seed}
-
-function sample(P){
-  const rnd=mulberry32(P.seed*7919+13);
-  const M=envelopeM(P.w,P.mu);
-  const need=P.N*P.T, draws=new Float64Array(need), show=[];
-  let n=0,props=0;
-  while(n<need){
-    let s=-P.mu*Math.log(1-rnd()); if(s>SMAX)continue;
-    const u=rnd(); props++;
-    const ok=u<=f(s,P.w)/(M*gpdf(s,P.mu));
-    if(show.length<900)show.push([s,u*M*gpdf(s,P.mu),ok]);
-    if(ok)draws[n++]=s;
-  }
-  const cu=new Float64Array(P.N*P.T); for(let i=0;i<cu.length;i++)cu[i]=rnd(); // common random numbers for conflicts
-  return {M,draws,cu,props,acc:need/props,show};
-}
-function q90(a){const b=Float64Array.from(a).sort();return b[Math.floor(.9*(b.length-1))]}
+const q90=a=>{const b=Float64Array.from(a).sort();return b[Math.floor(.9*(b.length-1))]};
 function simulate(P,S,k){
-  const {T,N}=P,D=Math.ceil(T/2),pe=P.p*(1-P.q);
-  let cIso=0,cSh=0,conf=0,hard=0,rerun=0;const dIso=new Float64Array(N),dSh=new Float64Array(N);
-  for(let r=0;r<N;r++){
-    const base=r*T;let iso=0,isoD=0,sh=0,shD=0,anyC=false;
-    for(let i=0;i<T;i++){iso+=S.draws[base+i];if(i<D)isoD+=S.draws[base+i]}
-    for(let g0=0;g0<T;g0+=k){
-      const m=Math.min(k,T-g0),pairs=m*(m-1)/2,pc=1-Math.pow(1-pe,pairs);
-      let setup=S.draws[base+g0]*(1+.12*(m-1))+3*(m-1);
-      const onPath=g0<D, pathTasks=Math.max(0,Math.min(D,g0+m)-g0);
-      let delay=S.draws[base+g0]*(1+.12*(m-1))+3*Math.max(0,pathTasks-1);
-      if(m>1&&S.cu[base+g0]<pc){anyC=true;rerun+=m;
-        let fb=240;for(let i=g0;i<g0+m;i++)fb+=S.draws[base+i];setup+=fb;
-        let fbD=240;for(let i=g0;i<Math.min(D,g0+m);i++)fbD+=S.draws[base+i];delay+=fbD;
-        if(S.cu[base+g0+ (m>1?1:0)]<.1)hard++;}
-      sh+=setup;if(onPath)shD+=delay;
-    }
-    cIso+=iso;cSh+=sh;dIso[r]=isoD;dSh[r]=k===1?isoD:shD;if(anyC)conf++;
-  }
-  return {save:1-cSh/cIso,conf:conf/N,hard:hard/N,rerun:rerun/N*100,p90iso:q90(dIso),p90sh:q90(dSh),minIso:cIso/N/60,minSh:cSh/N/60};
+  const {T}=P,D=Math.ceil(T/2),pe=P.p*(1-P.q);
+  let cIso=0,cSh=0,conf=0,hard=0,rerun=0;const dI=new Float64Array(N),dS=new Float64Array(N);
+  for(let r=0;r<N;r++){const b=r*T;let iso=0,isoD=0,sh=0,shD=0,any=false;
+    for(let i=0;i<T;i++){iso+=S.draws[b+i];if(i<D)isoD+=S.draws[b+i]}
+    for(let g0=0;g0<T;g0+=k){const m=Math.min(k,T-g0),pc=1-Math.pow(1-pe,m*(m-1)/2);
+      const base=S.draws[b+g0]*(1+.12*(m-1));let setup=base+3*(m-1);
+      const onPath=g0<D,pt=Math.max(0,Math.min(D,g0+m)-g0);let delay=base+3*Math.max(0,pt-1);
+      if(m>1&&S.cu[b+g0]<pc){any=true;rerun+=m;let fb=240,fbD=240;
+        for(let i=g0;i<g0+m;i++){fb+=S.draws[b+i];if(i<D)fbD+=S.draws[b+i]}
+        setup+=fb;delay+=fbD;if(S.cu[b+g0+1]<.1)hard++}
+      sh+=setup;if(onPath)shD+=delay}
+    cIso+=iso;cSh+=sh;dI[r]=isoD;dS[r]=k===1?isoD:shD;if(any)conf++}
+  return {save:1-cSh/cIso,conf:conf/N,hard:hard/N,rerun:rerun/N*100,p90i:q90(dI),p90s:q90(dS)};
 }
-function guard(R){return {conf:R.conf<=.02,p90:R.p90sh<=R.p90iso*1.0001,rerun:R.rerun<=8,hard:R.hard<=.003,save:R.save>=.30}}
+const pass=R=>R.conf<=.02&&R.p90s<=R.p90i*1.0001&&R.rerun<=8&&R.hard<=.003&&R.save>=.30;
 
-/* ---------- drawing: marker-style plots ---------- */
-function setupCanvas(c){const r=c.getBoundingClientRect();const h=+c.getAttribute('height');c.width=r.width*DPR;c.height=h*DPR;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);return [x,r.width,h]}
-function wobble(x,pts){x.beginPath();pts.forEach(([a,b],i)=>i?x.lineTo(a,b):x.moveTo(a,b));x.stroke()}
-let anim=null;
-function drawRej(P,S,progress){
-  const c=$('rej');const [x,W,H]=setupCanvas(c);
-  const pad=34,X=s=>pad+s/300*(W-pad-10),ymax=Math.max(S.M*gpdf(0,P.mu),f(36,P.w))*1.06,Y=v=>H-pad-Math.min(v,ymax)/ymax*(H-pad-14);
-  x.fillStyle='#fff';x.fillRect(0,0,W,H);
-  x.strokeStyle='#111';x.lineWidth=2.5;x.lineCap='round';
-  wobble(x,[[pad,10],[pad-1,H-pad],[W-8,H-pad+1]]);
-  x.font='15px "Permanent Marker"';x.fillStyle='#111';x.fillText('SETUP SECONDS →',W-176,H-pad-10);
-  x.save();x.translate(14,H/2+40);x.rotate(-1.57);x.fillText('HEIGHT',0,0);x.restore();
-  for(let s=0;s<=300;s+=60){x.font='12px "JetBrains Mono"';x.fillText(s,X(s)-8,H-pad+16)}
-  // envelope
-  x.setLineDash([8,6]);x.lineWidth=2.5;const env=[];for(let s=0;s<=300;s+=3)env.push([X(s),Y(S.M*gpdf(s,P.mu))]);wobble(x,env);x.setLineDash([]);
-  // dots
-  const n=Math.floor(S.show.length*progress);
-  for(let i=0;i<n;i++){const [s,v,ok]=S.show[i];if(s>300)continue;const px=X(s),py=Y(v);
-    if(ok){x.fillStyle='#111';x.beginPath();x.arc(px,py,3,0,6.283);x.fill()}
-    else{x.strokeStyle='#B8400F';x.lineWidth=1.6;x.beginPath();x.arc(px,py,3,0,6.283);x.stroke()}}
-  // target curve
-  x.strokeStyle='#111';x.lineWidth=3.5;const tg=[];for(let s=0;s<=300;s+=2)tg.push([X(s),Y(f(s,P.w))]);wobble(x,tg);
-  x.font='16px "Permanent Marker"';x.fillStyle='#111';x.fillText('KEEP RATE 1/M = '+(100/S.M).toFixed(0)+'%',pad+12,28);
+function canvas(c){const r=c.getBoundingClientRect(),h=+c.getAttribute('height'),d=Math.min(2,devicePixelRatio||1);
+  c.width=r.width*d;c.height=h*d;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);
+  x.clearRect(0,0,r.width,h);x.font='12px Inter, sans-serif';return [x,r.width,h]}
+function drawSweep(P,sw,ks){
+  const [x,W,H]=canvas($('sweep')),L=40,B=30,Tp=16,X=k=>L+(k-1)/Math.max(1,P.T-1)*(W-L-16),Y=v=>H-B-v*(H-B-Tp);
+  x.strokeStyle='#ddd';x.fillStyle='#666';
+  [0,.25,.5,.75,1].forEach(v=>{x.beginPath();x.moveTo(L,Y(v));x.lineTo(W-8,Y(v));x.stroke();x.fillText(Math.round(v*100)+'%',4,Y(v)+4)});
+  for(let k=1;k<=P.T;k++)if(P.T<=10||k%2)x.fillText(k,X(k)-3,H-10);
+  x.setLineDash([5,5]);x.strokeStyle=INK;x.beginPath();x.moveTo(L,Y(.2));x.lineTo(W-8,Y(.2));x.stroke();x.setLineDash([]);
+  x.fillStyle=INK;x.fillText('2% conflict limit (conflict axis ×10)',L+6,Y(.2)-6);
+  const line=(key,col,sc)=>{x.strokeStyle=col;x.lineWidth=2.5;x.beginPath();
+    sw.forEach((R,i)=>{const y=Y(Math.min(1,Math.max(0,R[key]*sc)));i?x.lineTo(X(i+1),y):x.moveTo(X(i+1),y)});x.stroke();x.lineWidth=1};
+  line('save',BLUE,1);line('conf',INK,10);
+  if(ks){x.fillStyle=BLUE;x.beginPath();x.arc(X(ks),Y(sw[ks-1].save),7,0,6.283);x.fill();x.fillText('k = '+ks,X(ks)+10,Y(sw[ks-1].save)-10)}
 }
-function drawSweep(P,sweep,kstar){
-  const c=$('sweep');const [x,W,H]=setupCanvas(c);const pad=34;
-  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.strokeStyle='#111';x.lineWidth=2.5;x.lineCap='round';
-  wobble(x,[[pad,10],[pad,H-pad],[W-8,H-pad]]);
-  const X=k=>pad+(k-1)/Math.max(1,P.T-1)*(W-pad-24),Y=v=>H-pad-v*(H-pad-16);
-  x.font='12px "JetBrains Mono"';x.fillStyle='#111';
-  for(let k=1;k<=P.T;k++)if(P.T<=10||k%2===1)x.fillText(k,X(k)-4,H-pad+16);
-  x.font='14px "Permanent Marker"';x.fillText('k →',W-40,H-8);
-  // guardrail line at 2% scaled (conflict axis ×10 so 10% = top)
-  x.setLineDash([4,5]);x.strokeStyle='#E8622A';x.lineWidth=1.5;wobble(x,[[pad,Y(.2)],[W-10,Y(.2)]]);x.setLineDash([]);
-  x.fillStyle='#B8400F';x.font='12px "JetBrains Mono"';x.fillText('2% conflict limit',pad+6,Y(.2)-5);
-  const line=(key,col,scale)=>{x.strokeStyle=col;x.lineWidth=4;wobble(x,sweep.map((R,i)=>[X(i+1),Y(Math.min(1,Math.max(0,R[key]*scale)))]));
-    sweep.forEach((R,i)=>{x.fillStyle=col;x.beginPath();x.arc(X(i+1),Y(Math.min(1,Math.max(0,R[key]*scale))),4,0,6.283);x.fill()})};
-  line('save','#4D5BFF',1);line('conf','#E8622A',10);
-  if(kstar){x.font='22px serif';x.fillText('⭐',X(kstar)-11,Y(sweep[kstar-1].save)-8)}
-  x.fillStyle='#111';x.font='11px "JetBrains Mono"';x.fillText('blue: saved (0–100%) · orange: conflict rate (0–10%)',pad+6,14);
+function drawRej(S){
+  const [x,W,H]=canvas($('rej')),L=12,B=24,ym=M*g(0)*1.05,X=s=>L+s/300*(W-L-10),Y=v=>H-B-Math.min(v,ym)/ym*(H-B-10);
+  S.show.forEach(([s,v,ok])=>{if(s>300)return;x.fillStyle=ok?BLUE:GREY;x.beginPath();x.arc(X(s),Y(v),2.4,0,6.283);x.fill()});
+  x.strokeStyle=INK;x.lineWidth=2;x.beginPath();for(let s=0;s<=300;s+=2){const y=Y(f(s));s?x.lineTo(X(s),y):x.moveTo(X(s),y)}x.stroke();
+  x.setLineDash([5,5]);x.beginPath();for(let s=0;s<=300;s+=3){const y=Y(M*g(s));s?x.lineTo(X(s),y):x.moveTo(X(s),y)}x.stroke();x.setLineDash([]);x.lineWidth=1;
+  x.fillStyle='#666';[0,60,120,180,240].forEach(s=>x.fillText(s+'s',X(s),H-6));
+  x.fillStyle=INK;x.fillText('keep rate 1/M ≈ '+Math.round(100/M)+'%',W-150,18);
 }
-function kpiHTML(P,R,S){
-  const g=guard(R);
-  const tile=(v,l,s,ok)=>`<div class="kpi ${ok?'':'bad'}"><div class="v">${v}</div><div class="l">${l}</div><span class="s">${s}</span></div>`;
-  return tile(Math.round(R.save*100)+'%','setup minutes saved per run',g.save?'✓ target ≥30%':'✗ below 30%',g.save)+
-    tile((R.p90sh/60).toFixed(1)+'m','P90 setup delay (isolated '+(R.p90iso/60).toFixed(1)+'m)',g.p90?'✓ no worse':'✗ slower',g.p90)+
-    tile((R.conf*100).toFixed(1)+'%','runs hit a dependency conflict',g.conf?'✓ ≤2%':'✗ over 2%',g.conf)+
-    tile((S.acc*100).toFixed(0)+'%','sampler keep rate (1/M)',(S.props/1000).toFixed(0)+'k proposals',true);
+function memo(P,R,sw,ks){
+  const b=ks?sw[ks-1]:null,pct=v=>(v*100).toFixed(1)+'%';
+  const fails=[R.save<.30&&'savings target',R.conf>.02&&'conflict limit',R.p90s>R.p90i*1.0001&&'P90 delay',R.rerun>8&&'re-run limit',R.hard>.003&&'hard-failure limit'].filter(Boolean);
+  return `<span class="verdict">${ks?'Go: default on, cap k = '+ks:'Hold: keep sharing opt-in'}</span>
+  <h3>Decision</h3><p>${ks?`Make shared environments the default for bundles, capped at ${ks} tasks per environment, with the deploy-time dependency check required.`:`Don't change the default yet. No cap clears every guardrail under these assumptions; improve the dependency check first.`}</p>
+  <h3>Evidence</h3><p>${ks?`At k = ${ks}, setup minutes drop ${Math.round(b.save*100)}%, P90 setup delay goes from ${(b.p90i/60).toFixed(1)} to ${(b.p90s/60).toFixed(1)} min, and ${pct(b.conf)} of runs hit a conflict (auto-fallback to isolated).`:`Even k = 2 misses a guardrail.`} The selected k = ${P.k} ${fails.length?'misses: '+fails.join(', ')+'.':'clears every guardrail.'}</p>
+  <h3>Risks</h3><p>Conflicts are assumed independent, and the deploy-time check is assumed to catch ${Math.round(P.q*100)}% of them. If it catches less, the safe cap shrinks quickly. One bad package upgrade now affects every task in the environment.</p>
+  <h3>Rollout</h3><p>Default-on for new bundles in 5% of workspaces, then 25%, then 100%, each step gated on the guardrails holding for two weeks against a holdout. One workspace-level flag acts as a kill switch.</p>
+  <h3>Next step</h3><p>Replace the assumed ${pct(P.p)} per-pair conflict rate with the measured rate from beta telemetry and rerun.</p>
+  <div class="vp">To the VP: ${ks?`Sharing environments cuts bundle setup time by about ${Math.round(b.save*100)}% if we cap it at ${ks} tasks, with conflicts in under ${Math.max(.1,b.conf*100).toFixed(1)}% of runs.`:`Sharing saves real time, but at today's conflict rates it breaks too many jobs; we fix detection first.`}</div>`;
 }
-function memoHTML(P,R,sweep,kstar){
-  const g=guard(R);const okAll=g.conf&&g.p90&&g.rerun&&g.hard&&g.save;
-  const best=kstar?sweep[kstar-1]:null;
-  const go=!!kstar;
-  const dec=go?`Ship shared environments as the default for bundles, capped at <b>k = ${kstar}</b> tasks per environment, with the pre-flight dependency check required.`:`Do not flip the default yet. Keep sharing opt-in until the pre-flight check gets better; no cap clears every guardrail under these assumptions.`;
-  const cur=okAll?`The setting you're looking at (k = ${P.k}) clears every guardrail.`:`The setting you're looking at (k = ${P.k}) breaks ${[!g.save&&'the savings target',!g.conf&&'the conflict guardrail',!g.p90&&'the P90 delay guardrail',!g.rerun&&'the re-run guardrail',!g.hard&&'the hard-failure guardrail'].filter(Boolean).join(', ')}.`;
-  const vp=go?`Sharing environments cuts bundle setup time by about ${Math.round(best.save*100)}% if we cap it at ${kstar} tasks, and conflict risk stays under ${Math.max(.1,best.conf*100).toFixed(1)}% of runs.`:`Sharing saves real setup time, but at today's conflict rates it breaks more jobs than we're willing to, so we fix detection first.`;
-  return `<span class="stamp ${go?'go':'hold'}">${go?'Go · cap at k='+kstar:'Hold · opt-in only'}</span>
-  <h3>Decision</h3><p>${dec}</p>
-  <h3>Evidence</h3><p>Across ${P.N.toLocaleString()} simulated runs of a ${P.T}-task bundle (seed ${P.seed}), ${go?`k = ${kstar} saves <b>${Math.round(best.save*100)}%</b> of setup minutes (${best.minIso.toFixed(1)} → ${best.minSh.toFixed(1)} env-minutes per run), P90 setup delay goes from ${(best.p90iso/60).toFixed(1)} to ${(best.p90sh/60).toFixed(1)} minutes, and ${(best.conf*100).toFixed(1)}% of runs hit a conflict that falls back to isolated environments.`:`even k = 2 misses at least one guardrail.`} ${cur}</p>
-  <h3>Risks</h3><p>Conflict risk grows with pairs of tasks, not tasks: going from k = 4 to k = 8 multiplies pairs from 6 to 28. The model assumes conflicts are independent and pre-flight catches ${Math.round(P.q*100)}% of them; if real catch rates are lower, the safe cap shrinks fast (drag the pre-flight slider to see it). Shared environments also widen the blast radius of one bad package upgrade.</p>
-  <h3>Rollout / experiment plan</h3><p>Week 1–2: default-on for new bundles in 5% of workspaces, cap ${kstar||2}, with conflicts logged and auto-fallback on. Compare setup env-minutes and P90 delay against holdout workspaces. Widen to 25% → 100% only if conflict rate stays ≤ 2% and hard failures ≤ 0.3% for two weeks. Kill switch: one workspace-level flag.</p>
-  <h3>Next step</h3><p>Pull 28 days of shared-environment beta telemetry to replace my assumed pairwise conflict rate (${(P.p*100).toFixed(1)}%) with a measured one, then rerun this sweep.</p>
-  <div class="vp">What I'd tell the VP in one sentence: ${vp}</div>`;
-}
-
+let cache={},st;
 function run(){
-  const P=readUI();labels(P);
-  const S=sample(P);
-  const sweep=[];for(let k=1;k<=P.T;k++)sweep.push(simulate(P,S,k));
-  let kstar=0;sweep.forEach((R,i)=>{const g=guard(R);if(i>0&&g.conf&&g.p90&&g.rerun&&g.hard&&g.save)kstar=i+1});
-  const R=sweep[P.k-1];
-  $('kpis').innerHTML=kpiHTML(P,R,S);
-  $('memo').innerHTML=memoHTML(P,R,sweep,kstar);
-  state={P,S,sweep,kstar};
-  drawSweep(P,sweep,kstar);
-  animateRej();
+  const T=+$('T').value;$('k').max=T;if(+$('k').value>T)$('k').value=T;
+  const P={T,k:+$('k').value,p:+$('p').value/1000,q:+$('q').value/100};
+  $('oT').textContent=T;$('ok').textContent=P.k;$('op').textContent=(P.p*100).toFixed(1)+'%';$('oq').textContent=Math.round(P.q*100)+'%';
+  const S=cache[T]||(cache[T]=sample(T));
+  const sw=[];for(let k=1;k<=T;k++)sw.push(simulate(P,S,k));
+  let ks=0;sw.forEach((R,i)=>{if(i>0&&pass(R))ks=i+1});
+  const R=sw[P.k-1],tile=(v,l,ok,s)=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div><div class="s ${ok?'ok':'no'}">${s}</div></div>`;
+  $('kpis').innerHTML=tile(Math.round(R.save*100)+'%','setup time saved',R.save>=.3,R.save>=.3?'meets ≥30%':'below 30%')+
+    tile((R.p90s/60).toFixed(1)+'m','P90 setup delay',R.p90s<=R.p90i*1.0001,'isolated: '+(R.p90i/60).toFixed(1)+'m')+
+    tile((R.conf*100).toFixed(1)+'%','runs with a conflict',R.conf<=.02,R.conf<=.02?'within 2%':'over 2%')+
+    tile(R.rerun.toFixed(1),'tasks re-run / 100 runs',R.rerun<=8,R.rerun<=8?'within 8':'over 8');
+  $('memo').innerHTML=memo(P,R,sw,ks);
+  st={P,S,sw,ks};drawSweep(P,sw,ks);drawRej(S);
 }
-function animateRej(){
-  const {P,S}=state;if(anim)cancelAnimationFrame(anim);
-  if(reduce){drawRej(P,S,1);return}
-  const st=performance.now();
-  const stepF=now=>{const pr=Math.min(1,(now-st)/2200);drawRej(P,S,pr);if(pr<1)anim=requestAnimationFrame(stepF)};
-  anim=requestAnimationFrame(stepF);
-}
-let deb;['T','k','p','q','w','mu','seed'].forEach(id=>$(id).addEventListener('input',()=>{labels(readUI());clearTimeout(deb);deb=setTimeout(run,90)}));
-$('reroll').addEventListener('click',()=>{$('seed').value=1+Math.floor(Math.random()*999);run()});
-$('replay').addEventListener('click',animateRej);
-let rs;addEventListener('resize',()=>{clearTimeout(rs);rs=setTimeout(()=>{sizeScene();sizeAmb();if(reduce)sceneFrame(performance.now());drawSweep(state.P,state.sweep,state.kstar);drawRej(state.P,state.S,1)},150)});
-
-sizeScene();sizeAmb();
-requestAnimationFrame(sceneFrame);requestAnimationFrame(ambFrame);
+['T','k','p','q'].forEach(id=>$(id).addEventListener('input',run));
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawSweep(st.P,st.sw,st.ks);drawRej(st.S)},150)});
 (document.fonts?document.fonts.ready:Promise.resolve()).then(run);
 })();
 </script>
