@@ -1,5 +1,7 @@
 # Carpool Compute · Decision Terrain
 
+[![ci](https://github.com/shriyashekatkar25-byte/carpool-compute/actions/workflows/ci.yml/badge.svg)](https://github.com/shriyashekatkar25-byte/carpool-compute/actions/workflows/ci.yml)
+
 **Should every task in a bundle share one serverless environment by default, and how many tasks per environment?** A Monte Carlo decision system with a WebGL decision terrain, SQLite persistence and confidence-bound guardrails.
 
 **[Live demo](https://shriyashekatkar25-byte.github.io/carpool-compute/)** · [APM Lab gallery](https://shriyashekatkar25-byte.github.io/apm-lab/) · [Case study](docs/case-study.md) · [PRD](docs/PRD.md) · [Architecture](docs/architecture.md) · [Evaluation](docs/evaluation.md) · [Design system](docs/design-system.md) · [Creative references](docs/creative-references.md)
