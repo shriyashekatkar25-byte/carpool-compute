@@ -1,0 +1,17 @@
+[
+  {
+    "id": "stability",
+    "title": "Decision stability across saved scenarios",
+    "sql": "SELECT d.verdict, d.kstar AS cap, COUNT(*) AS scenarios,\n       ROUND(AVG(s.p_pair)*100, 2) AS avg_pair_conflict_pct,\n       ROUND(AVG(s.q_catch)*100, 0) AS avg_check_catch_pct\nFROM decisions d JOIN scenarios s ON s.id = d.scenario_id\nGROUP BY d.verdict, d.kstar ORDER BY scenarios DESC;"
+  },
+  {
+    "id": "rule",
+    "title": "Where point estimates and the CI rule disagree",
+    "sql": "SELECT s.name, d.kstar_point AS point_rule_k, d.kstar AS ci_rule_k,\n       ROUND(r.conflict*100, 2) AS conflict_pct_at_point_k,\n       ROUND(r.conflict_hi*100, 2) AS conflict_upper_pct\nFROM decisions d\nJOIN scenarios s ON s.id = d.scenario_id\nJOIN results r ON r.scenario_id = d.scenario_id AND r.k = d.kstar_point\nWHERE d.kstar_point <> d.kstar ORDER BY s.id DESC;"
+  },
+  {
+    "id": "frontier",
+    "title": "Savings at the chosen cap vs. check quality",
+    "sql": "SELECT CASE WHEN s.q_catch >= 0.8 THEN 'check >= 80%'\n            WHEN s.q_catch >= 0.5 THEN 'check 50-79%' ELSE 'check < 50%' END AS check_quality,\n       COUNT(*) AS scenarios, ROUND(AVG(d.kstar), 2) AS avg_cap,\n       ROUND(AVG(r.savings)*100, 1) AS avg_savings_pct\nFROM decisions d JOIN scenarios s ON s.id = d.scenario_id\nLEFT JOIN results r ON r.scenario_id = d.scenario_id AND r.k = d.kstar\nGROUP BY check_quality ORDER BY avg_cap DESC;"
+  }
+]
