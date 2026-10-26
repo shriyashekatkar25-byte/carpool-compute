@@ -1,0 +1,9 @@
+[project]
+name = "carpool-compute"
+version = "1.0.0"
+description = "Monte Carlo decision engine for shared serverless environments (APM Lab)"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "scipy>=1.11", "fastapi>=0.110", "pydantic>=2.6"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]

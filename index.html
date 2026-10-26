@@ -3,238 +3,171 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Carpool Compute</title>
-<meta name="description" content="Should bundle tasks share one serverless environment by default? A rejection-sampling Monte Carlo decision prototype by Shriya Shekatkar.">
+<title>Carpool Compute — Decision Terrain</title>
+<meta name="description" content="Should bundle tasks share one serverless environment, and how many? A Monte Carlo decision system with a WebGL decision terrain, SQL ledger and CI-aware guardrails. By Shriya Shekatkar.">
+<meta name="theme-color" content="#0b0a0f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Inter+Tight:wght@700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<style>
-:root{--ink:#111;--bg:#fff;--muted:#555;--line:#e3e3e3;--blue:#1414F0;--soft:#f5f5f7}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif}
-.wrap{max-width:880px;margin:0 auto;padding:0 16px}
-header{padding:64px 0 32px;border-bottom:1px solid var(--line)}
-h1{font:900 clamp(32px,6vw,52px)/1.05 "Inter Tight",sans-serif;letter-spacing:-.03em;margin:8px 0 16px}
-h2{font:700 26px/1.2 "Inter Tight",sans-serif;letter-spacing:-.02em;margin:0 0 16px}
-h3{font:700 17px/1.3 "Inter Tight",sans-serif;margin:20px 0 4px}
-.tag{font:12px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-a{color:var(--blue)}
-section{padding:40px 0;border-bottom:1px solid var(--line)}
-p{margin:6px 0}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:700px){.grid{grid-template-columns:1fr}}
-.box{background:var(--soft);border-radius:12px;padding:16px 18px}
-.box b{display:block;font:700 13px Inter;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
-table{width:100%;border-collapse:collapse;font-size:15px}
-td{padding:8px 0;border-bottom:1px solid var(--line)}
-td:last-child{text-align:right;font-family:"JetBrains Mono",monospace;white-space:nowrap}
-.ctl{margin-bottom:14px}
-.ctl label{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
-.ctl output{font-family:"JetBrains Mono",monospace}
-.ctl small{color:var(--muted);font-size:12px}
-input[type=range]{width:100%;accent-color:var(--blue)}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
-@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{border:1px solid var(--line);border-radius:12px;padding:14px}
-.kpi .v{font:900 34px/1 "Inter Tight";letter-spacing:-.03em}
-.kpi .l{font-size:13px;color:var(--muted);margin-top:6px}
-.kpi .s{font-size:12px;font-weight:600;margin-top:6px}
-.ok{color:var(--blue)}.no{color:var(--ink);text-decoration:underline}
-canvas{width:100%;display:block;border:1px solid var(--line);border-radius:12px}
-.cap{font-size:13px;color:var(--muted);margin:6px 0 16px}
-.memo{border-left:4px solid var(--blue);padding-left:18px}
-.verdict{display:inline-block;font:700 14px "Inter Tight";background:var(--ink);color:#fff;padding:6px 12px;border-radius:999px}
-.vp{background:var(--soft);border-radius:12px;padding:14px 16px;font-weight:600;margin-top:18px}
-ol{padding-left:20px}ol li{margin:6px 0}
-pre{background:var(--soft);border-radius:12px;padding:16px;overflow:auto;font:13px/1.55 "JetBrains Mono",monospace}
-footer{padding:28px 0 48px;font-size:14px}
-.credits{font-size:11px;color:#666}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;600&family=Inter+Tight:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/styles.css">
+<link rel="modulepreload" href="app/engine.js">
 </head>
 <body>
-<header><div class="wrap">
-  <div class="tag">APM Lab · decision prototype</div>
-  <h1>Should every task in a bundle share one serverless environment?</h1>
-  <p>Mirrors <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" target="_blank" rel="noopener">Shared Serverless for Asset Bundles (Beta, Oct 22 2026)</a>.</p>
-  <p class="tag" style="margin-top:14px">Shriya Shekatkar · UCLA · Stats 102C Monte Carlo Methods</p>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar"><div class="wrap">
+  <span class="micro">APM Lab · Carpool Compute</span>
+  <span class="live" aria-live="polite"><i aria-hidden="true"></i><span id="liveRec">computing…</span></span>
+  <nav aria-label="Sections"><a href="#decision">Decision</a><a href="#terrain">Terrain</a><a href="#evidence">Evidence</a><a href="#sensitivity">Sensitivity</a><a href="#memo">Memo</a><a href="#ledger">Ledger</a><a href="#method">Method</a><a href="#system">System</a></nav>
 </div></header>
 
-<main>
-<section><div class="wrap">
-  <h2>1. The decision</h2>
-  <div class="grid">
-    <div class="box"><b>Customer problem</b>A data engineer's 8-task bundle sets up its environment 8 times, re-installing the same packages before any work runs.</div>
-    <div class="box"><b>Proposed change</b>Share one serverless environment across tasks by default, capped at <i>k</i> tasks per environment, with a dependency check at deploy time.</div>
-    <div class="box"><b>Success metric</b>Environment setup minutes per job run, down at least 30% versus one environment per task.</div>
-    <div class="box"><b>Stakeholders</b>Bundles/CLI engineering, serverless compute, Jobs PM, support, customer FinOps admins.</div>
+<section class="hero" aria-label="Introduction"><div class="wrap hero-grid">
+  <div class="micro" style="grid-column:1/-1">Decision prototype · Monte Carlo · WebGL · SQLite</div>
+  <h1 id="headline" aria-label="Share the environment. Not the blast radius.">Share the environment. Not the blast radius.</h1>
+  <p class="lede">When tasks in a bundle share one serverless environment, setup time collapses, but every new pair of tasks is another chance for a dependency clash. This system finds the largest safe cap, <i>k</i>, and only ships it when the statistics can prove the guardrails hold.</p>
+  <div class="meta">
+    <div><span class="micro">Mirrors launch</span><b><a href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" target="_blank" rel="noopener">Shared Serverless for Asset Bundles (Beta, Oct 22 2026)</a></b></div>
+    <div><span class="micro">Built by</span><b>Shriya Shekatkar</b></div>
+    <div><span class="micro">Method</span><b>Rejection sampling, CRN, Wilson &amp; batch-means CIs</b></div>
+    <div><span class="micro">Course</span><b>UCLA · Stats 102C Monte Carlo Methods</b></div>
   </div>
-  <h3>Guardrails</h3>
-  <table>
-    <tr><td>Runs that hit a dependency conflict</td><td>≤ 2%</td></tr>
-    <tr><td>P90 setup delay vs. isolated environments</td><td>no worse</td></tr>
-    <tr><td>Tasks re-run per 100 runs</td><td>≤ 8</td></tr>
-    <tr><td>Hard failures needing a human</td><td>≤ 0.3%</td></tr>
-  </table>
-  <p class="cap" style="margin-top:12px">The tension: sharing saves setup time, but conflicts scale with pairs of tasks, k(k−1)/2, so risk grows faster than savings.</p>
 </div></section>
 
-<section><div class="wrap">
-  <h2>2. Simulation</h2>
-  <p>2,000 simulated job runs. Setup times are drawn from a fitted curve using rejection sampling, then each run is replayed at every cap k.</p>
-  <div class="grid" style="margin-top:16px">
-    <div>
-      <div class="ctl"><label for="T">Tasks per bundle <output id="oT"></output></label><input type="range" id="T" min="2" max="16" value="8"></div>
-      <div class="ctl"><label for="k">Cap k (tasks per shared env) <output id="ok"></output></label><input type="range" id="k" min="1" max="16" value="4"><small>k = 1 is today: every task isolated.</small></div>
+<main id="main">
+<section id="decision"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">01 / Decision</span><h2>One default. Four guardrails. Five owners.</h2><p>PRD: <a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/PRD.md">docs/PRD.md</a></p></div>
+  <div class="swiss">
+    <div class="cell span-4 reveal"><span class="micro">Customer problem</span><h3>The same packages, installed eight times</h3><p class="muted">An 8-task bundle sets up 8 environments before any work runs. Data engineers wait; FinOps pays for idle setup minutes.</p></div>
+    <div class="cell span-4 reveal"><span class="micro">Proposed change</span><h3>Shared by default, capped at k</h3><p class="muted">Tasks join a shared serverless environment (from the bundle-root <code>pyproject.toml</code>), at most k per environment, with a dependency check at deploy time.</p></div>
+    <div class="cell span-4 reveal"><span class="micro">Success metric</span><h3>Setup minutes per run, −30%</h3><p class="muted">Judged on the <b>lower</b> 95% confidence bound, not the point estimate.</p></div>
+    <div class="cell span-8 reveal"><span class="micro">Guardrails (all must hold, judged on the pessimistic CI bound)</span>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Guardrail</th><th>Statistic</th><th class="num">Threshold</th></tr></thead>
+        <tbody>
+          <tr><td>Runs hitting a dependency conflict</td><td class="muted">Wilson upper 95%</td><td class="num">≤ 2.0%</td></tr>
+          <tr><td>Hard failures needing a human</td><td class="muted">Wilson upper 95%</td><td class="num">≤ 0.3%</td></tr>
+          <tr><td>Tasks re-run per 100 runs</td><td class="muted">mean</td><td class="num">≤ 8</td></tr>
+          <tr><td>P90 setup delay on the critical path</td><td class="muted">vs. isolated</td><td class="num">no worse</td></tr>
+        </tbody></table></div></div>
+    <div class="cell span-4 reveal"><span class="micro">Stakeholders</span><p class="muted">Bundles &amp; CLI engineering · Serverless compute · Jobs PM · Support &amp; field engineering · Customer FinOps admins</p><span class="micro">Why it's hard</span><p class="muted">Conflict pairs grow as k(k−1)/2. Risk climbs faster than savings.</p></div>
+  </div>
+</div></section>
+
+<section id="terrain" aria-labelledby="terrainTitle"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">02 / Decision terrain</span><h2 id="terrainTitle">Every vertex is a simulation.</h2><p>Drag to orbit · click or use arrow keys on the terrain to pick (k, conflict) · sliders re-run the model in a Web Worker.</p></div>
+  <div class="stage" id="stage">
+    <canvas id="terrain3d" tabindex="0" aria-label="3D decision terrain. Use arrow keys to move the selection across cap k and conflict probability. A table view is available."></canvas>
+    <div class="panel" id="panel">
+      <div class="ctl"><label for="tasks">Tasks per bundle <output id="o-tasks"></output></label><input type="range" id="tasks" min="2" max="16" value="8"></div>
+      <div class="ctl"><label for="capK">Cap k <output id="o-capK"></output></label><input type="range" id="capK" min="1" max="16" value="4"><small>k = 1 is today: every task isolated.</small></div>
+      <div class="ctl"><label for="pPair">Conflict chance per task pair <output id="o-pPair"></output></label><input type="range" id="pPair" min="0" max="30" value="5"></div>
+      <div class="ctl"><label for="qCatch">Deploy-time check catches <output id="o-qCatch"></output></label><input type="range" id="qCatch" min="0" max="95" step="5" value="70"></div>
+      <div class="ctl"><label for="coldShare">Cold installs <output id="o-coldShare"></output></label><input type="range" id="coldShare" min="5" max="70" step="5" value="30"></div>
+      <div class="ctl"><label for="seed">Seed <output id="o-seed"></output></label><input type="range" id="seed" min="1" max="999" value="102"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="reroll">New seed</button><button class="btn" id="share">Copy link</button></div>
     </div>
-    <div>
-      <div class="ctl"><label for="p">Conflict chance per task pair <output id="op"></output></label><input type="range" id="p" min="0" max="30" value="5"></div>
-      <div class="ctl"><label for="q">Deploy-time check catches <output id="oq"></output></label><input type="range" id="q" min="0" max="95" step="5" value="70"></div>
+    <div class="stage-tools"><button class="btn" id="tableToggle" aria-pressed="false" aria-controls="surfaceTable">Table view</button></div>
+    <div class="legend" aria-label="Legend">
+      <span class="micro">Encoding</span>
+      <ul>
+        <li><span class="sw" style="background:linear-gradient(90deg,#ede7f6,#f4b6c8,#b9a3ff)"></span>Pearl: passes every guardrail</li>
+        <li><span class="sw" style="background:#3a3542"></span>Graphite: fails at least one</li>
+        <li><span class="sw" style="background:#f594b8"></span>Blush line: conflict crosses 2%</li>
+        <li>Height: setup minutes saved · thin rings every 10%</li>
+        <li>Chrome sphere: your selection</li>
+      </ul>
+      <span class="micro">Surface: 1,500 runs/cell, point estimates</span>
+    </div>
+    <div class="tooltip" id="tip" role="status"></div>
+  </div>
+  <div id="surfaceTable" class="table-scroll" hidden></div>
+  <div class="kpis" id="kpis" aria-live="polite"></div>
+  <p class="status" id="status"></p>
+</div></section>
+
+<section id="evidence"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">03 / Evidence</span><h2>Point estimates said k = 4. The intervals disagree.</h2><p>20,000 runs per cap, common random numbers across caps.</p></div>
+  <div class="swiss">
+    <div class="chart span-6 reveal"><h3>Setup minutes saved, 95% CI</h3><div id="chSavings"></div><p class="cap">Dot = estimate, bar = batch-means 95% CI (20 batches). Pearl dots pass all guardrails.</p></div>
+    <div class="chart span-6 reveal"><h3>Runs with a dependency conflict, 95% Wilson CI</h3><div id="chConflict"></div><p class="cap">Pearl bars keep the <i>upper</i> bound under 2%.</p></div>
+    <div class="callout span-4 reveal" id="ruleBox"></div>
+    <div class="span-8 reveal"><div class="table-scroll" id="sweepTable"></div></div>
+  </div>
+</div></section>
+
+<section id="sensitivity"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">04 / Sensitivity</span><h2>Which assumption flips the call?</h2><p>Computed by the Python backend (<code>backend/carpool/analysis.py</code>), 20,000 runs per setting.</p></div>
+  <div class="chart reveal"><div id="chTornado"></div><p class="cap" id="sensCap"></p></div>
+</div></section>
+
+<section id="memo"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">05 / Director memo</span><h2>Written by the data, every time it changes.</h2><p>Deterministic template over the simulation output (no LLM).</p></div>
+  <div class="memo reveal" id="memoBody" aria-live="polite"></div>
+</div></section>
+
+<section id="ledger"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">06 / Scenario ledger</span><h2>Saved to SQLite. Queried with SQL.</h2><p id="dbState">Database: loading…</p></div>
+  <div class="swiss">
+    <div class="span-4 reveal">
+      <form id="saveForm" class="ctl"><label for="scName">Save current scenario</label>
+        <div style="display:flex;gap:8px;margin-top:6px"><input type="text" id="scName" maxlength="80" placeholder="e.g. weak check, 8 tasks" required><button class="btn primary" type="submit">Save</button></div></form>
+      <div class="ledger"><ul id="ledgerList"></ul></div>
+    </div>
+    <div class="span-8 reveal">
+      <div class="tabs" role="group" aria-label="Saved analytics queries" id="qTabs"></div>
+      <pre class="sql" id="qSql"></pre>
+      <div class="table-scroll" id="qOut"></div>
+      <details style="margin-top:16px"><summary class="micro" style="cursor:pointer">Read-only SQL console</summary>
+        <textarea id="console" spellcheck="false" aria-label="SQL query">SELECT k, ROUND(AVG(savings)*100,1) AS avg_savings_pct, SUM(passes) AS passing_scenarios
+FROM results GROUP BY k ORDER BY k;</textarea>
+        <div style="margin-top:8px"><button class="btn" id="runSql">Run query</button></div>
+        <div id="consoleOut" class="table-scroll" style="margin-top:8px"></div>
+      </details>
     </div>
   </div>
-  <div class="kpis" id="kpis"></div>
-  <canvas id="sweep" height="260" aria-label="Setup minutes saved and conflict rate for each cap k"></canvas>
-  <p class="cap">X axis: cap k. Blue: setup minutes saved. Black: share of runs with a conflict (2% limit dashed). Dot marks the largest k that clears every guardrail.</p>
-  <canvas id="rej" height="220" aria-label="Rejection sampling: accepted and rejected proposals under the envelope"></canvas>
-  <p class="cap">How the setup times are drawn: proposals under the dashed envelope; blue dots land under the target curve and are kept, grey dots are rejected.</p>
 </div></section>
 
-<section><div class="wrap">
-  <h2>3. Director memo</h2>
-  <div class="memo" id="memo" aria-live="polite"></div>
+<section id="method"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">07 / Method</span><h2>Rejection sampling, validated.</h2><p>Setup times follow a two-hump curve (cached vs. cold installs) with no simple inverse CDF.</p></div>
+  <div class="swiss">
+    <div class="chart span-6 reveal"><h3>Proposals under the envelope M·g</h3><div id="chSampler"></div><p class="cap" id="samplerCap"></p></div>
+    <div class="chart span-6 reveal"><h3>Accepted draws vs. target density</h3><div id="chHist"></div><p class="cap">The Python test suite also runs a Kolmogorov–Smirnov test against the exact CDF.</p></div>
+    <ol class="span-12 reveal muted" style="columns:2 320px;column-gap:32px">
+      <li><b style="color:var(--fg)">Target.</b> f(s) = 0.7·Gamma(2, 18 s) + 0.3·Gamma(4, 30 s). Its height is easy; sampling it directly is not.</li>
+      <li><b style="color:var(--fg)">Envelope.</b> g = Exponential(mean 70 s), drawn by inverse CDF s = −μ ln(1−U). M = sup f/g, found on a fine grid plus a 1% margin.</li>
+      <li><b style="color:var(--fg)">Accept.</b> Keep s when V ≤ f(s)/(M·g(s)). Kept draws follow f exactly; the keep rate is 1/M.</li>
+      <li><b style="color:var(--fg)">Common random numbers.</b> The same draws replay every cap, so differences between caps are policy, not noise.</li>
+      <li><b style="color:var(--fg)">Uncertainty.</b> Savings: batch-means CI over 20 batches. Rates: Wilson score intervals. Decisions use the pessimistic bound.</li>
+      <li><b style="color:var(--fg)">Limits.</b> Conflicts are assumed independent across pairs; overhead constants are assumptions until beta telemetry replaces them (see sensitivity).</li>
+    </ol>
+  </div>
 </div></section>
 
-<section><div class="wrap">
-  <h2>4. The method: rejection sampling</h2>
-  <ol>
-    <li>Telemetry gives a curve f(s) for setup seconds. I can compute its height, but there's no simple formula to sample it directly.</li>
-    <li>Pick an easy distribution g (exponential, drawn as −μ·ln U) and a constant M so that M·g(s) is always above f(s).</li>
-    <li>Draw s from g and U from Uniform(0,1). Keep s if U ≤ f(s) / (M·g(s)). Kept draws follow f exactly.</li>
-    <li>Only 1 in M proposals is kept on average, so a tight envelope saves compute.</li>
-  </ol>
-  <p><b>Why a PM cares:</b> any fitted latency or cost curve becomes a simulator, so you can estimate P90s, savings and risk before a customer sees the change.</p>
-</div></section>
-
-<section><div class="wrap">
-  <h2>5. On real data</h2>
-<pre>-- Setup-time distribution and cold-install share (illustrative tables)
-SELECT percentile_approx(env_setup_ms/1000.0, array(0.5,0.9)) AS setup_s_p50_p90,
-       avg(CASE WHEN cache_hit THEN 0 ELSE 1 END)               AS cold_share
-FROM   main.apm_lab.job_task_env_events
-WHERE  event_date >= current_date() - INTERVAL 28 DAYS;
-
--- Measured conflict rate per task pair from shared-environment beta runs
-SELECT avg(CAST(had_conflict AS INT)) / avg(n_task_pairs) AS p_conflict_per_pair
-FROM   main.apm_lab.shared_env_runs;</pre>
-<pre># Rejection sampler in Python
-import numpy as np
-rng = np.random.default_rng(102)
-f = lambda s: 0.7*s*np.exp(-s/18)/18**2 + 0.3*s**3*np.exp(-s/30)/(6*30**4)
-mu = 70.0
-grid = np.linspace(0.01, 600, 6000)
-M = 1.01 * np.max(f(grid) / (np.exp(-grid/mu)/mu))
-s = rng.exponential(mu, 100_000)
-keep = s[rng.uniform(size=s.size) &lt;= f(s) / (M*np.exp(-s/mu)/mu)]
-print(len(keep)/len(s), "≈", 1/M)</pre>
+<section id="system"><div class="wrap">
+  <div class="sec-head reveal"><span class="num">08 / System</span><h2>What runs where.</h2><p><a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/architecture.md">Architecture</a> · <a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/case-study.md">Case study</a> · <a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/evaluation.md">Evaluation</a> · <a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/design-system.md">Design system</a></p></div>
+  <div class="swiss">
+    <div class="cell span-3 reveal"><span class="micro">Browser</span><p class="muted">ES-module engine in a Web Worker · Three.js shader terrain · accessible SVG charts · URL-encoded scenarios</p></div>
+    <div class="cell span-3 reveal"><span class="micro">Persistence</span><p class="muted">SQLite in WASM (sql.js), snapshotted to IndexedDB · same migration file as the API · read-only console in a rolled-back savepoint</p></div>
+    <div class="cell span-3 reveal"><span class="micro">Python backend</span><p class="muted">NumPy engine · FastAPI + SQLite · sensitivity &amp; convergence analysis · pytest incl. KS test and JS↔Python parity</p></div>
+    <div class="cell span-3 reveal"><span class="micro">Quality</span><p class="muted">GitHub Actions CI · Node engine tests · Playwright end-to-end at 1280 and 375 px · reduced-motion and no-WebGL fallbacks</p></div>
+  </div>
 </div></section>
 </main>
 
 <footer><div class="wrap">
   <p>Unofficial concept prototype by Shriya Shekatkar. All data is simulated. Not affiliated with any company.</p>
-  <p><a href="https://shriyashekatkar25-byte.github.io/apm-lab/">← APM Lab gallery</a></p>
-  <p class="credits">Design inspired by: <a href="https://www.pinterest.com/pin/869687378069934509/">chilli flex (saanvi)</a> · <a href="https://www.pinterest.com/pin/794955771770627264/">graduATE (Hyunjin Kim)</a></p>
+  <p><a href="https://shriyashekatkar25-byte.github.io/apm-lab/">← APM Lab gallery</a> · <a href="https://github.com/shriyashekatkar25-byte/carpool-compute">Source</a></p>
+  <p class="credits">Inspiration &amp; references (studied, not reused; full list in <a href="https://github.com/shriyashekatkar25-byte/carpool-compute/blob/main/docs/creative-references.md">docs/creative-references.md</a>):
+    <a href="https://www.pinterest.com/pin/975099756819565544/">Swiss-style website, Valeria Ulaeva</a> ·
+    <a href="https://www.pinterest.com/pin/836191855843786858/">Swiss style, Chris (@madebychristopher)</a> ·
+    <a href="https://www.pinterest.com/pin/278238083213829328/">Elements &amp; Principles site (pinned by Szatmári Huba)</a> ·
+    <a href="https://www.pinterest.com/pin/1143492161676883714/">Iridescent Chrome Abstract 3D Art</a> ·
+    <a href="https://www.pinterest.com/pin/432978951699457588/">Iridescent torus knot render (dnvrmx)</a> ·
+    <a href="https://www.pinterest.com/pin/912260468313752286/">Liquid sunset vibes (FlowWallAI)</a> ·
+    <a href="https://www.pinterest.com/pin/743445851026551557/">3D terrain renderings (AI Art &amp; More)</a> ·
+    <a href="https://www.pinterest.com/pin/916482592928785750/">Data-viz poster (pinned by Ola Hmurka)</a> ·
+    <a href="https://www.pinterest.com/pin/1050675788088129863/">Kinetic type loop (Anushka Gaikwad)</a>.
+    Libraries: three.js (MIT), sql.js (MIT), bundled in <code>vendor/</code>.</p>
 </div></footer>
-
-<script>
-(()=>{
-"use strict";
-const $=id=>document.getElementById(id);
-const BLUE='#1414F0',INK='#111',GREY='#bbb';
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const W_COLD=.30,MU=70,N=2000,SEED=102,SMAX=600;
-const gpdf=(s,k,th,gk)=>Math.pow(s,k-1)*Math.exp(-s/th)/(gk*Math.pow(th,k));
-const f=s=>(1-W_COLD)*gpdf(s,2,18,1)+W_COLD*gpdf(s,4,30,6);
-const g=s=>Math.exp(-s/MU)/MU;
-let M=0;for(let i=1;i<=3000;i++){const s=i*SMAX/3000;M=Math.max(M,f(s)/g(s))}M*=1.01;
-
-function sample(T){
-  const rnd=mulberry32(SEED*7919+T),need=N*T,draws=new Float64Array(need),show=[];let n=0,props=0;
-  while(n<need){const s=-MU*Math.log(1-rnd());if(s>SMAX)continue;const u=rnd();props++;
-    const ok=u<=f(s)/(M*g(s));if(show.length<700)show.push([s,u*M*g(s),ok]);if(ok)draws[n++]=s}
-  const cu=new Float64Array(need);for(let i=0;i<need;i++)cu[i]=rnd();
-  return {draws,cu,acc:need/props,show};
-}
-const q90=a=>{const b=Float64Array.from(a).sort();return b[Math.floor(.9*(b.length-1))]};
-function simulate(P,S,k){
-  const {T}=P,D=Math.ceil(T/2),pe=P.p*(1-P.q);
-  let cIso=0,cSh=0,conf=0,hard=0,rerun=0;const dI=new Float64Array(N),dS=new Float64Array(N);
-  for(let r=0;r<N;r++){const b=r*T;let iso=0,isoD=0,sh=0,shD=0,any=false;
-    for(let i=0;i<T;i++){iso+=S.draws[b+i];if(i<D)isoD+=S.draws[b+i]}
-    for(let g0=0;g0<T;g0+=k){const m=Math.min(k,T-g0),pc=1-Math.pow(1-pe,m*(m-1)/2);
-      const base=S.draws[b+g0]*(1+.12*(m-1));let setup=base+3*(m-1);
-      const onPath=g0<D,pt=Math.max(0,Math.min(D,g0+m)-g0);let delay=base+3*Math.max(0,pt-1);
-      if(m>1&&S.cu[b+g0]<pc){any=true;rerun+=m;let fb=240,fbD=240;
-        for(let i=g0;i<g0+m;i++){fb+=S.draws[b+i];if(i<D)fbD+=S.draws[b+i]}
-        setup+=fb;delay+=fbD;if(S.cu[b+g0+1]<.1)hard++}
-      sh+=setup;if(onPath)shD+=delay}
-    cIso+=iso;cSh+=sh;dI[r]=isoD;dS[r]=k===1?isoD:shD;if(any)conf++}
-  return {save:1-cSh/cIso,conf:conf/N,hard:hard/N,rerun:rerun/N*100,p90i:q90(dI),p90s:q90(dS)};
-}
-const pass=R=>R.conf<=.02&&R.p90s<=R.p90i*1.0001&&R.rerun<=8&&R.hard<=.003&&R.save>=.30;
-
-function canvas(c){const r=c.getBoundingClientRect(),h=+c.getAttribute('height'),d=Math.min(2,devicePixelRatio||1);
-  c.width=r.width*d;c.height=h*d;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);
-  x.clearRect(0,0,r.width,h);x.font='12px Inter, sans-serif';return [x,r.width,h]}
-function drawSweep(P,sw,ks){
-  const [x,W,H]=canvas($('sweep')),L=40,B=30,Tp=16,X=k=>L+(k-1)/Math.max(1,P.T-1)*(W-L-16),Y=v=>H-B-v*(H-B-Tp);
-  x.strokeStyle='#ddd';x.fillStyle='#666';
-  [0,.25,.5,.75,1].forEach(v=>{x.beginPath();x.moveTo(L,Y(v));x.lineTo(W-8,Y(v));x.stroke();x.fillText(Math.round(v*100)+'%',4,Y(v)+4)});
-  for(let k=1;k<=P.T;k++)if(P.T<=10||k%2)x.fillText(k,X(k)-3,H-10);
-  x.setLineDash([5,5]);x.strokeStyle=INK;x.beginPath();x.moveTo(L,Y(.2));x.lineTo(W-8,Y(.2));x.stroke();x.setLineDash([]);
-  x.fillStyle=INK;x.fillText('2% conflict limit (conflict axis ×10)',L+6,Y(.2)-6);
-  const line=(key,col,sc)=>{x.strokeStyle=col;x.lineWidth=2.5;x.beginPath();
-    sw.forEach((R,i)=>{const y=Y(Math.min(1,Math.max(0,R[key]*sc)));i?x.lineTo(X(i+1),y):x.moveTo(X(i+1),y)});x.stroke();x.lineWidth=1};
-  line('save',BLUE,1);line('conf',INK,10);
-  if(ks){x.fillStyle=BLUE;x.beginPath();x.arc(X(ks),Y(sw[ks-1].save),7,0,6.283);x.fill();x.fillText('k = '+ks,X(ks)+10,Y(sw[ks-1].save)-10)}
-}
-function drawRej(S){
-  const [x,W,H]=canvas($('rej')),L=12,B=24,ym=M*g(0)*1.05,X=s=>L+s/300*(W-L-10),Y=v=>H-B-Math.min(v,ym)/ym*(H-B-10);
-  S.show.forEach(([s,v,ok])=>{if(s>300)return;x.fillStyle=ok?BLUE:GREY;x.beginPath();x.arc(X(s),Y(v),2.4,0,6.283);x.fill()});
-  x.strokeStyle=INK;x.lineWidth=2;x.beginPath();for(let s=0;s<=300;s+=2){const y=Y(f(s));s?x.lineTo(X(s),y):x.moveTo(X(s),y)}x.stroke();
-  x.setLineDash([5,5]);x.beginPath();for(let s=0;s<=300;s+=3){const y=Y(M*g(s));s?x.lineTo(X(s),y):x.moveTo(X(s),y)}x.stroke();x.setLineDash([]);x.lineWidth=1;
-  x.fillStyle='#666';[0,60,120,180,240].forEach(s=>x.fillText(s+'s',X(s),H-6));
-  x.fillStyle=INK;x.fillText('keep rate 1/M ≈ '+Math.round(100/M)+'%',W-150,18);
-}
-function memo(P,R,sw,ks){
-  const b=ks?sw[ks-1]:null,pct=v=>(v*100).toFixed(1)+'%';
-  const fails=[R.save<.30&&'savings target',R.conf>.02&&'conflict limit',R.p90s>R.p90i*1.0001&&'P90 delay',R.rerun>8&&'re-run limit',R.hard>.003&&'hard-failure limit'].filter(Boolean);
-  return `<span class="verdict">${ks?'Go: default on, cap k = '+ks:'Hold: keep sharing opt-in'}</span>
-  <h3>Decision</h3><p>${ks?`Make shared environments the default for bundles, capped at ${ks} tasks per environment, with the deploy-time dependency check required.`:`Don't change the default yet. No cap clears every guardrail under these assumptions; improve the dependency check first.`}</p>
-  <h3>Evidence</h3><p>${ks?`At k = ${ks}, setup minutes drop ${Math.round(b.save*100)}%, P90 setup delay goes from ${(b.p90i/60).toFixed(1)} to ${(b.p90s/60).toFixed(1)} min, and ${pct(b.conf)} of runs hit a conflict (auto-fallback to isolated).`:`Even k = 2 misses a guardrail.`} The selected k = ${P.k} ${fails.length?'misses: '+fails.join(', ')+'.':'clears every guardrail.'}</p>
-  <h3>Risks</h3><p>Conflicts are assumed independent, and the deploy-time check is assumed to catch ${Math.round(P.q*100)}% of them. If it catches less, the safe cap shrinks quickly. One bad package upgrade now affects every task in the environment.</p>
-  <h3>Rollout</h3><p>Default-on for new bundles in 5% of workspaces, then 25%, then 100%, each step gated on the guardrails holding for two weeks against a holdout. One workspace-level flag acts as a kill switch.</p>
-  <h3>Next step</h3><p>Replace the assumed ${pct(P.p)} per-pair conflict rate with the measured rate from beta telemetry and rerun.</p>
-  <div class="vp">To the VP: ${ks?`Sharing environments cuts bundle setup time by about ${Math.round(b.save*100)}% if we cap it at ${ks} tasks, with conflicts in under ${Math.max(.1,b.conf*100).toFixed(1)}% of runs.`:`Sharing saves real time, but at today's conflict rates it breaks too many jobs; we fix detection first.`}</div>`;
-}
-let cache={},st;
-function run(){
-  const T=+$('T').value;$('k').max=T;if(+$('k').value>T)$('k').value=T;
-  const P={T,k:+$('k').value,p:+$('p').value/1000,q:+$('q').value/100};
-  $('oT').textContent=T;$('ok').textContent=P.k;$('op').textContent=(P.p*100).toFixed(1)+'%';$('oq').textContent=Math.round(P.q*100)+'%';
-  const S=cache[T]||(cache[T]=sample(T));
-  const sw=[];for(let k=1;k<=T;k++)sw.push(simulate(P,S,k));
-  let ks=0;sw.forEach((R,i)=>{if(i>0&&pass(R))ks=i+1});
-  const R=sw[P.k-1],tile=(v,l,ok,s)=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div><div class="s ${ok?'ok':'no'}">${s}</div></div>`;
-  $('kpis').innerHTML=tile(Math.round(R.save*100)+'%','setup time saved',R.save>=.3,R.save>=.3?'meets ≥30%':'below 30%')+
-    tile((R.p90s/60).toFixed(1)+'m','P90 setup delay',R.p90s<=R.p90i*1.0001,'isolated: '+(R.p90i/60).toFixed(1)+'m')+
-    tile((R.conf*100).toFixed(1)+'%','runs with a conflict',R.conf<=.02,R.conf<=.02?'within 2%':'over 2%')+
-    tile(R.rerun.toFixed(1),'tasks re-run / 100 runs',R.rerun<=8,R.rerun<=8?'within 8':'over 8');
-  $('memo').innerHTML=memo(P,R,sw,ks);
-  st={P,S,sw,ks};drawSweep(P,sw,ks);drawRej(S);
-}
-['T','k','p','q'].forEach(id=>$(id).addEventListener('input',run));
-let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawSweep(st.P,st.sw,st.ks);drawRej(st.S)},150)});
-(document.fonts?document.fonts.ready:Promise.resolve()).then(run);
-})();
-</script>
+<script type="module" src="app/main.js"></script>
 </body>
 </html>
