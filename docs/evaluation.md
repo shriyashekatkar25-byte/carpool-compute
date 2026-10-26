@@ -62,4 +62,4 @@ One-at-a-time, 20,000 runs per setting:
 - Inputs are assumptions, not telemetry; the sensitivity table shows which ones matter.
 - Conflicts are independent across task pairs in the model; clustered conflicts (a few bad packages) would change the risk curve.
 - Surface colours in the 3D terrain use point estimates on 1,500 runs per cell (labelled on the page); the decision itself uses 20,000 runs and confidence bounds.
-- Performance numbers were measured in headless Chromium with software WebGL (SwiftShader); a real GPU will be faster, but this was not measured.
+- Performance was measured in headless Chromium with software WebGL (SwiftShader) and on one real device (Apple M4, Chrome: steady 60 fps). Lower-end mobile GPUs have not been measured.

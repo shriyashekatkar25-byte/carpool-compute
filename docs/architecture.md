@@ -63,6 +63,7 @@ flowchart LR
 | Full analysis (`cli analyze`) | 15 sensitivity evaluations + 20 seeds + 200k-draw KS | ~3 s |
 | Page weight | three.js 671 KB + sql.js WASM 656 KB (uncompressed; gzip on Pages) | three.js is skipped entirely on devices without WebGL2 |
 | Idle | render-on-demand | 0 long tasks during a 3 s idle window |
+| Live site, real GPU (Apple M4, Chrome, Metal) | terrain view, 120 frames | median 16.7 ms, p95 16.8 ms (steady 60 fps); no console errors |
 
 ## Failure modes and handling
 | Failure | Handling |
