@@ -3,6 +3,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -15,4 +16,4 @@ jobs:
       - name: JS engine and SQLite store tests
         run: npm install && npm test
       - name: End-to-end (Playwright, Chromium)
-        run: python -m playwright install --with-deps chromium && python -m pytest tests/e2e -q
+        run: python -m playwright install --with-deps chromium && python -m pytest tests/e2e -v
