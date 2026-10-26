@@ -1,0 +1,86 @@
+{
+  "base_kstar": 3,
+  "base_kstar_point": 4,
+  "n_runs": 20000,
+  "seed": 102,
+  "generated": "2026-10-26",
+  "rows": [
+    {
+      "param": "qCatch",
+      "label": "Deploy check catch rate",
+      "low": 0.4,
+      "high": 0.9,
+      "low_label": "40%",
+      "high_label": "90%",
+      "kstar_low": 2,
+      "kstar_high": 7,
+      "swing": 5
+    },
+    {
+      "param": "pPair",
+      "label": "Conflict chance per pair",
+      "low": 0.0025,
+      "high": 0.01,
+      "low_label": "0.25%",
+      "high_label": "1.00%",
+      "kstar_low": 6,
+      "kstar_high": 2,
+      "swing": 4
+    },
+    {
+      "param": "hardFrac",
+      "label": "Conflicts needing a human",
+      "low": 0.05,
+      "high": 0.2,
+      "low_label": "5%",
+      "high_label": "20%",
+      "kstar_low": 3,
+      "kstar_high": 2,
+      "swing": 1
+    },
+    {
+      "param": "tasks",
+      "label": "Tasks per bundle",
+      "low": 4,
+      "high": 12,
+      "low_label": "4 tasks",
+      "high_label": "12 tasks",
+      "kstar_low": 4,
+      "kstar_high": 3,
+      "swing": 1
+    },
+    {
+      "param": "unionOverhead",
+      "label": "Setup overhead per extra task",
+      "low": 0.05,
+      "high": 0.25,
+      "low_label": "5%",
+      "high_label": "25%",
+      "kstar_low": 3,
+      "kstar_high": 3,
+      "swing": 0
+    },
+    {
+      "param": "fallbackSec",
+      "label": "Fallback penalty",
+      "low": 120.0,
+      "high": 480.0,
+      "low_label": "120s",
+      "high_label": "480s",
+      "kstar_low": 3,
+      "kstar_high": 3,
+      "swing": 0
+    },
+    {
+      "param": "coldShare",
+      "label": "Cold-install share",
+      "low": 0.15,
+      "high": 0.5,
+      "low_label": "15%",
+      "high_label": "50%",
+      "kstar_low": 3,
+      "kstar_high": 3,
+      "swing": 0
+    }
+  ]
+}
