@@ -163,10 +163,11 @@ export class DecisionTerrain {
   _resize() {
     const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1; // the canvas box, not the stage (panel stacks above it on phones)
     this.renderer.setSize(w, h, false); this.camera.aspect = w / h;
-    this.wide = w >= 900;
+    this.wide = w >= 760 && innerWidth > 720; // panel overlays the canvas only above the 720px breakpoint
     this.camera.fov = w < 600 ? 56 : 34; this.camera.updateProjectionMatrix();
     // on wide screens the control panel covers the left third: frame the terrain in the remaining space
-    this.controls.target.set(this.wide ? -2.3 : 0, 1.3, this.wide ? 0.2 : 0);
+    const panel = this.wide ? (document.getElementById('panel')?.offsetWidth || 340) + 32 : 0;
+    this.controls.target.set(this.wide ? -(panel / w) * 7.6 : 0, 1.3, this.wide ? 0.2 : 0); // shift by the share of the canvas the panel covers
     if (this.intro >= 1 && !this.userMoved) this.camera.position.copy(this._home());
     this.requestRender();
   }
